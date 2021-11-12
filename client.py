@@ -1,10 +1,10 @@
 import socket
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('127.0.0.1', 12345))
-s.send("Noam Cohen and Ofek Yaloz")
+s.send(b'Noam Cohen and Ofek Yaloz')
 data = s.recv(100)
 print("Server sent: ", data)
-s.send("Noam Cohen and Ofek Yaloz")
+s.send(b'209311620, 206666729')
 data = s.recv(100)
 print("Server sent: ", data)
 s.close()
