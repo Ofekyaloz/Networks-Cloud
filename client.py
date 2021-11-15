@@ -37,15 +37,15 @@ def arguments_check():
     else:
         pass
     parts = ip.split('.')
-    # if len(parts) != 4:
-    #     print(f'IP: {ip} is not valid')
-    #     return INVALID
-    # i = 0
-    # for part in parts:
-    #     if not part.isdigit() or not 0 <= int(part) <= 255 or (i == 0 and int(part) == 0):
-    #         print(f'IP: {ip} is not valid')
-    #         return INVALID
-    #     i += 1
+    if len(parts) != 4:
+        print(f'IP: {ip} is not valid')
+        return INVALID
+    i = 0
+    for part in parts:
+        if not part.isdigit() or not 0 <= int(part) <= 255 or (i == 0 and int(part) == 0):
+            print(f'IP: {ip} is not valid')
+            return INVALID
+        i += 1
 
 
 class FileChangedHandler(FileSystemEventHandler):
@@ -63,25 +63,45 @@ time_interval = sys.argv[TIME_INTERVAL_INDEX]
 client_id = ""
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((ip, port))
+# s.connect((ip, port))
 
-if len(sys.argv) == 6:
-    client_id = sys.argv[5]
-else:
-    s.send("REGS")
-    data = s.recv(132)
-    print("Server sent: ", data)
-    client_id = data[4:]
+# if len(sys.argv) == 6:
+#     client_id = sys.argv[5]
+# else:
+#     s.send("REGS")
+#     data = s.recv(132)
+#     print("Server sent: ", data)
+#     client_id = data[4:]
 
-handler = FileChangedHandler()
-observer = Observer()
-observer.schedule(handler, path=dir_path, recursive = True)
+# saving the files
+files = os.listdir(dir_path)
+# saving the files path
+files_path = [os.path.abspath(x) for x in os.listdir(dir_path)]
+print(files_path)
+#
+entries = os.listdir(dir_path)
+print(entries)
 
-try:
-    while True:
-        time.sleep(2)
-except:
-    observer.stop()
+for entry in os.listdir(dir_path):
+    if os.path.isdir(os.path.join(dir_path, entry)):
+        print(entry)
 
-observer.join()
+# create tree that contains the files in the path
+for (root, dirs, files) in os.walk(dir_path, topdown=True):
+   for name in files:
+      print(os.path.join(root, name))
+   for name in dirs:
+      print(os.path.join(root, name))
+
+# handler = FileChangedHandler()
+# observer = Observer()
+# observer.schedule(handler, path=dir_path, recursive = True)
+#
+# try:
+#     while True:
+#         time.sleep(2)
+# except:
+#     observer.stop()
+#
+# observer.join()
 s.close()
