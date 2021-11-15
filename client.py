@@ -86,11 +86,32 @@ for entry in os.listdir(dir_path):
     if os.path.isdir(os.path.join(dir_path, entry)):
         print(entry)
 
-# print out the files it finds in the subdirectories
+# create tree that contains the files in the path
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
-    print(f'Found directory: {root}')
-    for file_name in files:
-        print(file_name)
+   for name in files:
+      print(os.path.join(root, name))
+   for name in dirs:
+      print(os.path.join(root, name))
+
+for file in
+    with open(file, "rb") as f:
+        while True:
+            # read the bytes from the file
+            bytes_read = f.read(BUFFER_SIZE)
+            if not bytes_read:
+                # file transmitting is done
+                break
+            # we use sendall to assure transimission in
+            # busy networks
+            s.sendall(bytes_read)
+            # update the progress bar
+            progress.update(len(bytes_read))
+
+# # print out the files it finds in the subdirectories first:
+# for (root, dirs, files) in os.walk(dir_path, topdown=True):
+#     print(f'Found directory: {root}')
+#     for file_name in files:
+#         print(file_name)
 
 # handler = FileChangedHandler()
 # observer = Observer()
