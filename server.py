@@ -21,7 +21,8 @@ while True:
         client_id = os.urandom(128)
         clients[client_id] = []
         client_socket.send(client_id)
-        continue
+        data = client_socket.recv(100)
+        request_type = data[0:4]
 
     clients[client_id].append(client_socket)
     client_socket.send("DONE" + client_id)
