@@ -28,3 +28,7 @@ while True:
 
     client_socket.close()
     print('Client disconnected')
+
+
+    #os.remove(data_file) # delete a file
+    #os.rename('first.zip', 'first_01.zip') # rename

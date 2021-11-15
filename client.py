@@ -86,12 +86,11 @@ for entry in os.listdir(dir_path):
     if os.path.isdir(os.path.join(dir_path, entry)):
         print(entry)
 
-# create tree that contains the files in the path
+# print out the files it finds in the subdirectories
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
-   for name in files:
-      print(os.path.join(root, name))
-   for name in dirs:
-      print(os.path.join(root, name))
+    print(f'Found directory: {root}')
+    for file_name in files:
+        print(file_name)
 
 # handler = FileChangedHandler()
 # observer = Observer()
