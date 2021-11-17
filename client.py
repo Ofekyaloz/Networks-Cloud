@@ -50,7 +50,6 @@ class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
         print(f'{e.event_type}, {e.src_path}')
 
-
 flag = arguments_check()
 if flag == INVALID:
     exit(INVALID)
