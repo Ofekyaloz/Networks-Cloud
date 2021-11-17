@@ -74,7 +74,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #     client_id = data[4:]
 
 # saving the files
-files = os.listdir(dir_path)
+all_files = os.listdir(dir_path)
 # saving the files path
 files_path = [os.path.abspath(x) for x in os.listdir(dir_path)]
 print(files_path)
@@ -86,26 +86,40 @@ for entry in os.listdir(dir_path):
     if os.path.isdir(os.path.join(dir_path, entry)):
         print(entry)
 
-# create tree that contains the files in the path
-for (root, dirs, files) in os.walk(dir_path, topdown=True):
-   for name in files:
-      print(os.path.join(root, name))
-   for name in dirs:
-      print(os.path.join(root, name))
+BUFFER_SIZE = 100
 
-for file in
-    with open(file, "rb") as f:
-        while True:
-            # read the bytes from the file
-            bytes_read = f.read(BUFFER_SIZE)
-            if not bytes_read:
-                # file transmitting is done
-                break
-            # we use sendall to assure transimission in
-            # busy networks
-            s.sendall(bytes_read)
-            # update the progress bar
-            progress.update(len(bytes_read))
+# with os.scandir(dir_path) as entries:
+#     for entry in entries:
+#         if not os.path.isfile(entry):
+#             continue
+#         with open(entry, "rb") as f:
+#             while True:
+#                 # read the bytes from the file
+#                 bytes_read = f.read(BUFFER_SIZE)
+#                 if not bytes_read:
+#                     # file transmitting is done
+#                     break
+#                 # we use sendall to assure transimission in
+#                 # busy networks
+#                 s.sendall(bytes_read)
+
+for (root, dirs, files) in os.walk(dir_path, topdown=True):
+    for name in dirs:
+        print(os.path.join(root, name))
+    for name in files:
+        print(os.path.join(root, name))
+        with open(name, "rb") as f:
+            while True:
+                # read the bytes from the file
+                bytes_read = f.read(BUFFER_SIZE)
+                if not bytes_read:
+                    # file transmitting is done
+                    break
+                # we use sendall to assure transimission in
+                # busy networks
+                s.sendall(bytes_read)
+                # update the progress bar
+
 
 # # print out the files it finds in the subdirectories first:
 # for (root, dirs, files) in os.walk(dir_path, topdown=True):
