@@ -1,6 +1,4 @@
 import socket, sys, os
-import time
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 INVALID = -1
@@ -92,6 +90,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 BUFFER_SIZE = 1024
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
+
     for file in files:
         print(os.path.join(root, file))
         fileloc = os.path.join(root, file)
