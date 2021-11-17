@@ -1,6 +1,4 @@
 import socket, sys, os
-import time
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 INVALID = -1
@@ -88,21 +86,6 @@ for entry in os.listdir(dir_path):
 
 BUFFER_SIZE = 100
 
-# with os.scandir(dir_path) as entries:
-#     for entry in entries:
-#         if not os.path.isfile(entry):
-#             continue
-#         with open(entry, "rb") as f:
-#             while True:
-#                 # read the bytes from the file
-#                 bytes_read = f.read(BUFFER_SIZE)
-#                 if not bytes_read:
-#                     # file transmitting is done
-#                     break
-#                 # we use sendall to assure transimission in
-#                 # busy networks
-#                 s.sendall(bytes_read)
-
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
     for name in dirs:
         print(os.path.join(root, name))
@@ -118,14 +101,6 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
                 # we use sendall to assure transimission in
                 # busy networks
                 s.sendall(bytes_read)
-                # update the progress bar
-
-
-# # print out the files it finds in the subdirectories first:
-# for (root, dirs, files) in os.walk(dir_path, topdown=True):
-#     print(f'Found directory: {root}')
-#     for file_name in files:
-#         print(file_name)
 
 # handler = FileChangedHandler()
 # observer = Observer()
