@@ -1,4 +1,3 @@
-
 import socket, sys
 import os
 
@@ -15,7 +14,6 @@ while True:
     request_type = data[0:4]
 
     print('Received: ', data)
-
     # creates a new client
     if data != "REGS":
         client_id = os.urandom(128)
@@ -33,3 +31,4 @@ while True:
 
     #os.remove(data_file) # delete a file
     #os.rename('first.zip', 'first_01.zip') # rename
+    #client_socket.close()

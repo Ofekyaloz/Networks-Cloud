@@ -1,4 +1,6 @@
 import socket, sys, os
+import time
+from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 INVALID = -1
@@ -44,7 +46,6 @@ def arguments_check():
             print(f'IP: {ip} is not valid')
             return INVALID
         i += 1
-
 
 class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
@@ -112,4 +113,26 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
 #     observer.stop()
 #
 # observer.join()
+s.close()
+s.connect((ip, port))
+
+if len(sys.argv) == 6:
+    client_id = sys.argv[5]
+else:
+    s.send("REGS")
+    data = s.recv(132)
+    print("Server sent: ", data)
+    client_id = data[4:]
+
+handler = FileChangedHandler()
+observer = Observer()
+observer.schedule(handler, path=dir_path, recursive = True)
+
+try:
+    while True:
+        time.sleep(2)
+except:
+    observer.stop()
+
+observer.join()
 s.close()
