@@ -10,7 +10,7 @@ clients = {}
 while True:
     client_socket, client_address = server.accept()
     print('Connection from: ', client_address)
-    data = client_socket.recv(100)
+    data = client_socket.recv(1024)
     request_type = data[0:4]
 
     print('Received: ', data)
