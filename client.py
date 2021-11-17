@@ -72,30 +72,29 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #     client_id = data[4:]
 
 # saving the files
-all_files = os.listdir(dir_path)
+#all_files = os.listdir(dir_path)
 # saving the files path
-files_path = [os.path.abspath(x) for x in os.listdir(dir_path)]
-print(files_path)
-#
-entries = os.listdir(dir_path)
-print(entries)
+# files_path = [os.path.abspath(x) for x in os.listdir(dir_path)]
+# print(files_path)
+# #
+# entries = os.listdir(dir_path)
+# print(entries)
 
-s.connect((ip, port))
 
-if len(sys.argv) == 6:
-    client_id = sys.argv[5]
-else:
-    s.send("REGS")
-    data = s.recv(132)
-    print("Server sent: ", data)
-    client_id = data[4:]
+# if len(sys.argv) == 6:
+#     client_id = sys.argv[5]
+# else:
+#     s.send("REGS")
+#     data = s.recv(132)
+#     print("Server sent: ", data)
+#     client_id = data[4:]
 
 BUFFER_SIZE = 1024
-
+# root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
-    for name in files:
-        print(os.path.join(root, name))
-        fileloc = os.path.join(root, name)
+    for file in files:
+        print(os.path.join(root, file))
+        fileloc = os.path.join(root, file)
         with open(fileloc, "rb") as f:
             while True:
                 # read the bytes from the file
@@ -104,7 +103,6 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
                     # file transmitting is done
                     break
                 # we use sendall to assure transimission in
-                # busy networks
                 s.sendall(bytes_read)
 
 
