@@ -14,11 +14,21 @@ while True:
     request_type = data[0:4]
 
     print('Received: ', data)
-    client_id = os.urandom(128)
-    if clients[client_id] is None:
+    # creates a new client
+    if data != "REGS":
+        client_id = os.urandom(128)
         clients[client_id] = []
+        client_socket.send(client_id)
+        data = client_socket.recv(100)
+        request_type = data[0:4]
 
     clients[client_id].append(client_socket)
     client_socket.send("DONE" + client_id)
 
+    client_socket.close()
+    print('Client disconnected')
+
+
+    #os.remove(data_file) # delete a file
+    #os.rename('first.zip', 'first_01.zip') # rename
     #client_socket.close()
