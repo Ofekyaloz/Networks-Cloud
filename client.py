@@ -59,15 +59,15 @@ time_interval = sys.argv[TIME_INTERVAL_INDEX]
 client_id = ""
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# s.connect((ip, port))
+s.connect((ip, port))
 
-# if len(sys.argv) == 6:
-#     client_id = sys.argv[5]
-# else:
-#     s.send("REGS")
-#     data = s.recv(132)
-#     print("Server sent: ", data)
-#     client_id = data[4:]
+if len(sys.argv) == 6:
+    client_id = sys.argv[5]
+else:
+    s.send("REGS".encode())
+    data = s.recv(132)
+    print("Server sent: ", data)
+    client_id = data.decode()
 
 # saving the files
 #all_files = os.listdir(dir_path)
@@ -78,30 +78,24 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # entries = os.listdir(dir_path)
 # print(entries)
 
-
-# if len(sys.argv) == 6:
-#     client_id = sys.argv[5]
-# else:
-#     s.send("REGS")
-#     data = s.recv(132)
-#     print("Server sent: ", data)
-#     client_id = data[4:]
-
 BUFFER_SIZE = 1024
+msg = "Hello from: "+client_id+" "+dir_path
+s.send(msg.encode())
+
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
-
     for file in files:
-        print(os.path.join(root, file))
         fileloc = os.path.join(root, file)
         with open(fileloc, "rb") as f:
+            size = os.path.getsize(fileloc)
+            filedata = "send file: " + str(size) + " " + fileloc
+            s.send(filedata.encode())
             while True:
                 # read the bytes from the file
                 bytes_read = f.read(BUFFER_SIZE)
                 if not bytes_read:
                     # file transmitting is done
                     break
-                # we use sendall to assure transimission in
                 s.sendall(bytes_read)
 
 

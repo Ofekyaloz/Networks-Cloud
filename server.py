@@ -18,7 +18,7 @@ while True:
     if data != "REGS":
         client_id = os.urandom(128)
         clients[client_id] = []
-        client_socket.send(client_id)
+        client_socket.send(client_id.decode())
         data = client_socket.recv(100)
         request_type = data[0:4]
 
