@@ -58,7 +58,7 @@ client_id = os.urandom(128)
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((ip, port))
+# s.connect((ip, port))
 
 # if len(sys.argv) == 6:
 #     client_id = sys.argv[5]
@@ -82,8 +82,8 @@ msg = "hello@@@"+str(client_id)+"@@@"+dir_path+"###"
 print(client_id)
 print(dir_path)
 len = str(len(msg))
-s.send((len.zfill(12)+"###").encode())
-s.send(msg.encode())
+# s.send((len.zfill(12)+"###").encode())
+# s.send(msg.encode())
 
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
@@ -93,9 +93,12 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
         fileloc = os.path.join(root, file)
         with open(fileloc, "rb") as f:
             size = os.path.getsize(fileloc)
-            filedata = "send file@@@" + str(size) + "@@@" + fileloc+"###"
-            data = str(len(filedata))
-            s.send((data.zfill(12) + "###").encode())
+            filedata = "send file@@@" + str(size) + "@@@" + str(fileloc)+"###"
+            len_msg = 0
+            for i in fileloc:
+                len_msg +=1
+            len_msg += (18 + len(str(size)))
+            s.send((str(len_msg).zfill(12) + "###").encode())
             s.send(filedata.encode())
             while True:
                 # read the bytes from the file
