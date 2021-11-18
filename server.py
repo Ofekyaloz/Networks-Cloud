@@ -22,46 +22,65 @@ server.listen(5)
 dictionary = {}
 
 host = socket.gethostname() # Get local machine name
+
 port = 12345                 # Reserve a port for your service.
 server.bind((host, port))        # Bind to the port
 server.listen(5)                 # Now wait for client connection.
 #send-file,name,size
-
+buffer = []
 while True:
+    finished_ack = "no"
     connection, addr = server.accept()     # Establish connection with client.
     print('Connected:', addr)
     print("Waiting for requests...")
-    request = connection.recv(1024)
-    request_parts = request.split(",")
-    command = request_parts[0]
-    if command == "hello":
-        client_id = request_parts[1]
-        client_folder = request_parts[2]
-        if client_id not in dictionary:
-            dictionary[client_id] = []
-        dictionary[client_id].append((connection, client_folder))
+    request = ""
+    while "finish###" not in request:
+        while buffer and len(buffer) > 0:
+            con_and_request = buffer.pop()
+            connection = con_and_request[0]
+            request = con_and_request[1]
+        if len(request) == 0:
+            request = connection.recv(1024).decode()
+        request_all_parts = request.split("###", 1)
         try:
-            os.makedirs(client_id)
-            print("created folder " + client_id)
+            next_request = request_all_parts[1]
+            if len(next_request > 0):
+                buffer.append((connection, next_request))
+                request = request_all_parts[0]
+
         except Exception as e:
-            print("folder " + client_folder + " already exists.");
-    if command == "send-file":
-        file_name = request_parts[1]
-        file_size = int(request_parts[2])
-        file_path = request_parts[3]
-        client_id = get_id_by_socket(dictionary, connection)
-        client_folder = get_folder_by_id(dictionary, client_id)
-        file_path = file_path.replace(client_folder)
-        f = open(file_path, 'wb')
-        data = request
-        counter = 0
-        while counter < file_size:
-            print("Writing to file...")
-            f.write(request)
-            data = connection.recv(1024)
-            counter += 1024
-        f.close()
-    print("Finished writing.")
+            print("ended taking care of command")
+        request_parts = request.split("@@@")
+        command = request_parts[0]
+        if command == "hello":
+            client_id = request_parts[1]
+            client_id_folder = client_id[0:15]
+            client_folder = request_parts[2]
+            if client_id_folder not in dictionary:
+                dictionary[client_id_folder] = []
+            dictionary[client_id_folder].append((connection, client_folder))
+            try:
+                os.makedirs(client_id_folder)
+                print("created folder " + client_id_folder)
+            except Exception as e:
+                print("folder " + client_folder + " already exists.");
+        if command == "send-file":
+            file_name = request_parts[1]
+            file_size = int(request_parts[2])
+            file_path = request_parts[3]
+            client_id = get_id_by_socket(dictionary, connection)
+            client_folder = get_folder_by_id(dictionary, client_id)
+            file_path = file_path.replace(client_folder)
+            f = open(file_path, 'wb')
+            data = request
+            counter = 0
+            while counter < file_size:
+                print("Writing to file...")
+                f.write(request)
+                data = connection.recv(1024).decode()
+                counter += 1024
+            f.close()
+        print("Finished writing.")
 #
 # while True:
 #     client_socket, client_address = server.accept()
