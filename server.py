@@ -22,6 +22,10 @@ server.listen(5)
 dictionary = {}
 
 host = socket.gethostname() # Get local machine name
+
+port = 12345                 # Reserve a port for your service.
+server.bind((host, port))        # Bind to the port
+server.listen(5)                 # Now wait for client connection.
 #send-file,name,size
 buffer = []
 while True:
