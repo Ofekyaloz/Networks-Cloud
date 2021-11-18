@@ -81,6 +81,8 @@ BUFFER_SIZE = 1024
 msg = "hello@@@"+str(client_id)+"@@@"+dir_path+"###"
 print(client_id)
 print(dir_path)
+len = str(len(msg))
+s.send((len.zfill(12)+"###").encode())
 s.send(msg.encode())
 
 # root = paths, dirs = folders, files
@@ -92,6 +94,8 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
         with open(fileloc, "rb") as f:
             size = os.path.getsize(fileloc)
             filedata = "send file@@@" + str(size) + "@@@" + fileloc+"###"
+            data = str(len(filedata))
+            s.send((data.zfill(12) + "###").encode())
             s.send(filedata.encode())
             while True:
                 # read the bytes from the file
