@@ -53,8 +53,8 @@ ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = sys.argv[TIME_INTERVAL_INDEX]
-client_id = os.urandom(128)
-
+# client_id = os.urandom(128)
+client_id = "123456789123456789123456789123456789123456789123456789123456789123456789"
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -78,27 +78,25 @@ s.connect((ip, port))
 # print(entries)
 
 BUFFER_SIZE = 1024
-msg = "hello@@@"+str(client_id)+"@@@"+dir_path+"###"
+msg = "hello@@@"+str(client_id)+"@@@"+dir_path
 print(client_id)
 print(dir_path)
 len = str(len(msg.encode()))
-s.send((len.zfill(12)+"###").encode())
+s.send((len.zfill(12)).encode())
 s.send(msg.encode())
 
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
-    #for folder in dirs:
-        #s.send("foldername@@@"+str(folder)+"@@@"+")
     for file in files:
         fileloc = os.path.join(root, file)
         with open(fileloc, "rb") as f:
             size = os.path.getsize(fileloc)
-            filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)+"###"
+            filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
             msg = filedata.encode()
             sum = 0
             for i in msg:
                 sum += 1
-            s.send((str(sum).zfill(12) + "###").encode())
+            s.send((str(sum).zfill(12)).encode())
             s.send(filedata.encode())
             while True:
                 # read the bytes from the file
@@ -108,7 +106,8 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
                     break
                 s.sendall(bytes_read)
 
-msg = "finish###"
+msg = "finish"
+s.send(('6'.zfill(12)).encode())
 s.send(msg.encode())
 # class FileChangedHandler(FileSystemEventHandler):
 #     def alert_file_modified(self, e):
