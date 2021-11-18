@@ -1,5 +1,4 @@
 import socket, sys, os
-from watchdog.events import FileSystemEventHandler
 
 INVALID = -1
 IP_INDEX = 1
@@ -29,11 +28,11 @@ def arguments_check():
         if time_interval <= 0:
             print(f'time interval {time_interval} is not valid')
             return INVALID
-    if not os.path.isdir(sys.argv[PATH_INDEX]):
-        print(f'Error: path: {sys.argv[PATH_INDEX]} ,does not exists')
-        return INVALID
-    else:
-        pass
+    # if not os.path.isdir(sys.argv[PATH_INDEX]):
+    #     print(f'Error: path: {sys.argv[PATH_INDEX]} ,does not exists')
+    #     return INVALID
+    # else:
+    #     pass
     parts = ip.split('.')
     if len(parts) != 4:
         print(f'IP: {ip} is not valid')
