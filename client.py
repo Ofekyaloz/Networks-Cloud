@@ -53,36 +53,26 @@ port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = sys.argv[TIME_INTERVAL_INDEX]
 # client_id = os.urandom(128)
-client_id = "123456789123456789123456789123456789123456789123456789123456789123456789"
+# client_id = "123456789123456789123456789123456789123456789123456789123456789123456789"
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 
-# if len(sys.argv) == 6:
-#     client_id = sys.argv[5]
-# else:
-#     s.send("REGS".encode())
-#     data = s.recv(132)
-#     print("Server sent: ", data)
-#     client_id = data.decode()
-
-# saving the files
-#all_files = os.listdir(dir_path)
-# saving the files path
-# files_path = [os.path.abspath(x) for x in os.listdir(dir_path)]
-# print(files_path)
-# #
-# entries = os.listdir(dir_path)
-# print(entries)
+if len(sys.argv) == 6:
+    client_id = sys.argv[5]
+else:
+    s.send(('8'.zfill(12)).encode('utf-8'))
+    s.send("register".encode('utf-8'))
+    data = s.recv(132)
+    print("Server sent: ", data)
+    client_id = data
 
 BUFFER_SIZE = 1024
 msg = "hello@@@"+str(client_id)+"@@@"+dir_path
-print(client_id)
-print(dir_path)
-len = str(len(msg.encode()))
-s.send((len.zfill(12)).encode())
-s.send(msg.encode())
+len = str(len(msg.encode('utf-8')))
+s.send((len.zfill(12)).encode('utf-8'))
+s.send(msg.encode('utf-8'))
 
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
@@ -91,12 +81,12 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
         with open(fileloc, "rb") as f:
             size = os.path.getsize(fileloc)
             filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
-            msg = filedata.encode()
+            msg = filedata.encode('utf-8')
             sum = 0
             for i in msg:
                 sum += 1
-            s.send((str(sum).zfill(12)).encode())
-            s.send(filedata.encode())
+            s.send((str(sum).zfill(12)).encode('utf-8'))
+            s.send(filedata.encode('utf-8'))
             while True:
                 # read the bytes from the file
                 bytes_read = f.read(BUFFER_SIZE)
@@ -106,8 +96,8 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
                 s.sendall(bytes_read)
 
 msg = "finish"
-s.send(('6'.zfill(12)).encode())
-s.send(msg.encode())
+s.send(("6".zfill(12)).encode('utf-8'))
+s.send(msg.encode('utf-8'))
 # class FileChangedHandler(FileSystemEventHandler):
 #     def alert_file_modified(self, e):
 #         print(f'{e.event_type}, {e.src_path}')
