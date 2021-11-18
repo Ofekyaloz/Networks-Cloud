@@ -1,6 +1,4 @@
 import socket, sys, os
-import time
-
 from watchdog.events import FileSystemEventHandler
 
 INVALID = -1
@@ -57,6 +55,8 @@ dir_path = sys.argv[PATH_INDEX]
 time_interval = sys.argv[TIME_INTERVAL_INDEX]
 client_id = os.urandom(128)
 
+
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 
@@ -82,8 +82,11 @@ msg = "hello@@@"+str(client_id)+"@@@"+dir_path+"###"
 print(client_id)
 print(dir_path)
 s.send(msg.encode())
+
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
+    #for folder in dirs:
+        #s.send("foldername@@@"+str(folder)+"@@@"+")
     for file in files:
         fileloc = os.path.join(root, file)
         with open(fileloc, "rb") as f:
@@ -98,7 +101,8 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
                     break
                 s.sendall(bytes_read)
 
-
+msg = "finish###"
+s.send(msg.encode())
 # class FileChangedHandler(FileSystemEventHandler):
 #     def alert_file_modified(self, e):
 #         print(f'{e.event_type}, {e.src_path}')
