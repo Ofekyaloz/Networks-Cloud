@@ -2,10 +2,10 @@ import socket, sys
 import os
 
 
-def get_id_by_socket(dictionary, sock):
+def get_id_by_addr(dictionary, addr):
     for client_id, value in dictionary.items():
-        client_socket = value[0]
-        if client_socket == sock:
+        client_socket = value[0][0]
+        if client_socket == addr:
             return client_id
     return "empty_id"
 
@@ -13,7 +13,7 @@ def get_id_by_socket(dictionary, sock):
 def get_folder_by_id(dictionary, id):
     for client_id, value in dictionary.items():
         if client_id == id:
-            client_folder = value[1]
+            client_folder = value[0][1]
             return client_folder
     return "empty_folder"
 
@@ -40,8 +40,8 @@ while True:
     connection.settimeout(15)
     while True:
         try:
-            request = connection.recv(15).decode()
-            length_of_packet = int(request.replace("###", ""))
+            request = connection.recv(12).decode()
+            length_of_packet = int(request)
             request = connection.recv(length_of_packet).decode()
 
             request_parts = request.split("@@@")
@@ -49,10 +49,10 @@ while True:
             if command == "hello":
                 client_id = request_parts[1]
                 client_id_folder = client_id[0:15]
-                client_folder = request_parts[2].replace("###", "")
+                client_folder = request_parts[2]
                 if client_id_folder not in dictionary:
                     dictionary[client_id_folder] = []
-                dictionary[client_id_folder].append((connection, client_folder))
+                dictionary[client_id_folder].append((addr, client_folder))
                 try:
                     os.makedirs(client_id_folder)
                     print("created folder " + client_id_folder)
@@ -62,19 +62,19 @@ while True:
                 file_name = request_parts[1]
                 file_size = int(request_parts[2])
                 file_path = request_parts[3]
-                client_id = get_id_by_socket(dictionary, connection)
+                client_id = get_id_by_addr(dictionary, addr)
+                # /home/ofek/Desktop/temp/ofek - 1234
+                # /home/ofek/Desktop/temp/ofek1 - 1234
                 client_folder = get_folder_by_id(dictionary, client_id)
-                file_path = file_path.replace(client_folder)
+                file_path = file_path.replace(client_folder, client_id[0:15])
                 f = open(file_path, 'wb')
-                data = request
-                counter = 0
-                data = connection.recv(file_size).decode()
+                data = connection.recv(file_size)
                 print("Writing to file...")
-                f.write(request)
+                f.write(data)
                 f.close()
             print("Finished iteration in server.")
         except Exception as e:
-            raise e
+            pass
 #
 # while True:
 #     client_socket, client_address = server.accept()
