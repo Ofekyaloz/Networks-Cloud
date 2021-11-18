@@ -95,10 +95,8 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
             size = os.path.getsize(fileloc)
             filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)+"###"
             msg = filedata.encode()
-            sum = 1
+            sum = 0
             for i in msg:
-                sum += 1
-            for j in file:
                 sum += 1
             s.send((str(sum).zfill(12) + "###").encode())
             s.send(filedata.encode())
