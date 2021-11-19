@@ -1,4 +1,6 @@
 import socket, sys, os, time
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler, FileSystemEventHandler
 
 INVALID = -1
 IP_INDEX = 1
@@ -173,26 +175,63 @@ def ask_change(last_visit):
     s.send(msg)
     get_all_files(dir_path)
 
+class FileChangedHandler(FileSystemEventHandler):
+    def alert_file_modified(self, e):
+        print(f'{e.event_type}, {e.src_path}')
 
-while True:
-    ask_change(last_viist)
-    last_viist = time.time()
-    print("sleep")
-    time.sleep(time_interval)
 
-# class FileChangedHandler(FileSystemEventHandler):
-#     def alert_file_modified(self, e):
-#         print(f'{e.event_type}, {e.src_path}')
-# handler = FileChangedHandler()
-# observer = Observer()
-# observer.schedule(handler, path=dir_path, recursive = True)
-#
-# try:
-#     while True:
-#         time.sleep(2)
-# except:
-#     observer.stop()
-#
-# observer.join()
+
+def on_created(event):
+    print(f"created {event.src_path}")
+    msg = ("send-dir" + "@@@" + str(event.src_path)).encode('utf-8')
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    s.send(msg)
+
+
+def on_deleted(event):
+    print(f"deleted {event.src_path}")
+    msg = ("alert-deleted-folder" + "@@@" + str(event.src_path)).encode('utf-8')
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    s.send(msg)
+
+
+def on_modified(event):
+    print(f"modified {event.src_path} ")
+    file = os.listdir(event.src_path)[0]
+    size = os.path.getsize(event.src_path)
+    msg = ("send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(event.src_path)).encode('utf-8')
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    s.send(msg)
+
+
+def on_moved(event):
+   print(f"moved {event.src_path} to {event.dest_path}")
+   msg = ("alert-moved-folder" + "@@@" + str(event.src_path) + "@@@" + str(event.dest_path)).encode('utf-8')
+   msg_len = get_size(msg)
+   s.send(msg_len)
+   s.send(msg)
+
+
+handler = PatternMatchingEventHandler("*", None, False, True)
+handler.on_created = on_created
+handler.on_deleted = on_deleted
+handler.on_modified = on_modified
+handler.on_moved = on_moved
+observer = Observer()
+observer.schedule(handler, path=dir_path, recursive=True)
+
+observer.start()
+try:
+    while True:
+        ask_change(last_viist)
+        last_viist = time.time()
+        print("sleep")
+        time.sleep(time_interval)
+except KeyboardInterrupt:
+    observer.stop()
+    observer.join()
 
 s.close()
