@@ -72,16 +72,14 @@ def create_folder(folder_path):
 def send_all_folder(client_id_folder, s, get_only_modified = False,
                                          last_update_time = None):
     dir_path = client_id_folder
-    now = time.time()
-    if last_update_time is None:
-        last_update_time = now
     for (root, dirs, files) in os.walk(dir_path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
             if not (os.listdir(folder_loc)):
                 msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
                 msg_len = get_size(msg)
-                if not (get_only_modified and now - last_update_time <= 0):
+                #os.path.getmtime
+                if (not get_only_modified) or (get_only_modified and os.path.getmtime(folder_loc) - last_update_time > 0):
                     s.send(msg_len)
                     s.send(msg)
 
@@ -92,7 +90,7 @@ def send_all_folder(client_id_folder, s, get_only_modified = False,
                 filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
                 msg = filedata.encode('utf-8')
                 sum = get_size(msg)
-                if not (get_only_modified and now - last_update_time <= 0):
+                if (not get_only_modified) or (get_only_modified and os.path.getmtime(fileloc) - last_update_time > 0):
                     s.send(sum)
                     s.send(filedata.encode('utf-8'))
                     while True:
@@ -107,7 +105,12 @@ def send_all_folder(client_id_folder, s, get_only_modified = False,
     s.send(sum)
     s.send(msg)
 
+def add_changes(changes, key, request):
+    if key not in changes:
+        changes[key] = []
+    changes[key].append(request)
 
+changes = {}
 while True:
     connection, addr = server.accept()  # Establish connection with client.
     print('Connected:', addr)
@@ -133,6 +136,22 @@ while True:
             print(client_id)
             add_client_to_dictionary(dictionary, addr, client_id)
             connection.send(client_id.encode())
+        elif command =="alert-delete-folder":
+            # /home/noam
+            client_folder = get_folder_by_id(dictionary, client_id)
+            # /home/noam/example
+            path_in_client = request_parts[1]
+            # Acdbhd1348
+            client_dir = get_client_id_folder(client_id)
+            # Acdbhd1348/home/noam
+            path_to_delete = path_in_client.replace(client_folder, client_dir)
+
+            for root, folders, files in os.walk(path_to_delete, topdown=False):
+                for name_of_file in files:
+                    os.remove(os.path.join(root, name_of_file))
+                for name_of_file in folders:
+                    os.rmdir(os.path.join(root, name_of_file))
+            add_changes(changes, client_id+client_folder, request)
         elif command == "hello":
             client_id = request_parts[1]
             client_id_folder = client_id[0:15]
