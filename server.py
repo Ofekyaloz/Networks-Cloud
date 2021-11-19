@@ -1,10 +1,14 @@
 import socket, sys
 import os
 import time
+import string, random
 
-#/home/Ofek1
-#/home/Ofek2
-#text
+BUFFER_SIZE = 1024
+
+
+# /home/Ofek1
+# /home/Ofek2
+# text
 def get_id_by_addr(dictionary, addr):
     for client_id, value in dictionary.items():
         if (value is None or len(value) == 0 or value == []):
@@ -36,13 +40,25 @@ port = 12345  # Reserve a port for your service.
 buffer = []
 
 
-def add_client_to_dictionary(dictionary, addr):
+def add_client_to_dictionary(dictionary, addr, client_id):
     client_id_folder = client_id[0:15]
     if client_id_folder not in dictionary:
         dictionary[client_id_folder] = []
 
+
 UTF = "UTF-8"
 IGNORE = "ignore"
+
+
+def get_size(msg):
+    sum = 0
+    for i in msg:
+        sum += 1
+    return str(sum).zfill(12).encode('utf-8')
+
+
+def get_client_id_folder(client_id):
+    return client_id[0:15]
 
 
 def create_folder(folder_path):
@@ -51,6 +67,39 @@ def create_folder(folder_path):
         print("created folder " + folder_path)
     except Exception as e:
         print("folder " + folder_path + " already exists.")
+
+
+def send_all_folder(client_id_folder, s):
+    dir_path = client_id_folder
+    for (root, dirs, files) in os.walk(dir_path, topdown=True):
+        for folder in dirs:
+            folder_loc = os.path.join(root, folder)
+            if not (os.listdir(folder_loc)):
+                msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
+                msg_len = get_size(msg)
+                s.send(msg_len)
+                s.send(msg)
+
+        for file in files:
+            fileloc = os.path.join(root, file)
+            with open(fileloc, "rb") as f:
+                size = os.path.getsize(fileloc)
+                filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
+                msg = filedata.encode('utf-8')
+                sum = get_size(msg)
+                s.send(sum)
+                s.send(filedata.encode('utf-8'))
+                while True:
+                    # read the bytes from the file
+                    bytes_read = f.read(BUFFER_SIZE)
+                    if not bytes_read:
+                        # file transmitting is done
+                        break
+                    s.sendall(bytes_read)
+    msg = "finish".encode('utf-8')
+    sum = get_size(msg)
+    s.send(sum)
+    s.send(msg)
 
 
 while True:
@@ -64,6 +113,7 @@ while True:
     while True:
         request = connection.recv(12)
         request = request.decode(UTF, IGNORE)
+        client_id = ""
         try:
             length_of_packet = int(request)
         except:
@@ -73,17 +123,33 @@ while True:
         request_parts = request.split("@@@")
         command = request_parts[0]
         if command == "register":
-            client_id = os.urandom(128)
-            add_client_to_dictionary(dictionary, addr)
-            connection.send(client_id)
+            client_id = ''.join(random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in range(128))
+            print(client_id)
+            add_client_to_dictionary(dictionary, addr, client_id)
+            connection.send(client_id.encode())
         elif command == "hello":
             client_id = request_parts[1]
             client_id_folder = client_id[0:15]
             client_folder = request_parts[2]
-            add_client_to_dictionary(dictionary, addr)
+            is_first_hello = request_parts[3]
+            add_client_to_dictionary(dictionary, addr, client_id)
             dictionary[client_id_folder].append((
                 addr[0], client_folder))
             create_folder(client_id_folder)
+            if is_first_hello.upper() == "TRUE":
+                create_folder(client_id_folder)
+                send_all_folder(client_id_folder, connection)
+        # elif command == "hello":
+        #     client_id = request_parts[1]
+        #     client_id_folder = get_client_id_folder(client_id)
+        #     client_folder = request_parts[2]
+        #     is_first_hello = request_parts[3]
+        #     add_client_to_dictionary(dictionary, addr, client_id)
+        #     dictionary[client_id_folder].append((
+        #         addr[0], client_folder))
+        #     if is_first_hello.upper() == "TRUE":
+        #         create_folder(client_id_folder)
+        #         send_all_folder(client_id_folder, connection)
         elif command == "send-dir":
             folder_path = request_parts[1]
             client_id = get_id_by_addr(dictionary, addr[0])
@@ -111,8 +177,7 @@ while True:
             break
         time.sleep(2)
 
-
-            #
+        #
 # while True:
 #     client_socket, client_address = server.accept()
 #     print('Connection from: ', client_address)
