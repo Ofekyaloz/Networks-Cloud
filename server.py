@@ -69,16 +69,21 @@ def create_folder(folder_path):
         print("folder " + folder_path + " already exists.")
 
 
-def send_all_folder(client_id_folder, s):
+def send_all_folder(client_id_folder, s, get_only_modified = False,
+                                         last_update_time = None):
     dir_path = client_id_folder
+    now = time.time()
+    if last_update_time is None:
+        last_update_time = now
     for (root, dirs, files) in os.walk(dir_path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
             if not (os.listdir(folder_loc)):
                 msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
                 msg_len = get_size(msg)
-                s.send(msg_len)
-                s.send(msg)
+                if not (get_only_modified and now - last_update_time <= 0):
+                    s.send(msg_len)
+                    s.send(msg)
 
         for file in files:
             fileloc = os.path.join(root, file)
@@ -87,15 +92,16 @@ def send_all_folder(client_id_folder, s):
                 filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
                 msg = filedata.encode('utf-8')
                 sum = get_size(msg)
-                s.send(sum)
-                s.send(filedata.encode('utf-8'))
-                while True:
-                    # read the bytes from the file
-                    bytes_read = f.read(BUFFER_SIZE)
-                    if not bytes_read:
-                        # file transmitting is done
-                        break
-                    s.sendall(bytes_read)
+                if not (get_only_modified and now - last_update_time <= 0):
+                    s.send(sum)
+                    s.send(filedata.encode('utf-8'))
+                    while True:
+                        # read the bytes from the file
+                        bytes_read = f.read(BUFFER_SIZE)
+                        if not bytes_read:
+                            # file transmitting is done
+                            break
+                        s.sendall(bytes_read)
     msg = "finish".encode('utf-8')
     sum = get_size(msg)
     s.send(sum)
@@ -139,17 +145,9 @@ while True:
             if is_first_hello.upper() == "TRUE":
                 create_folder(client_id_folder)
                 send_all_folder(client_id_folder, connection)
-        # elif command == "hello":
-        #     client_id = request_parts[1]
-        #     client_id_folder = get_client_id_folder(client_id)
-        #     client_folder = request_parts[2]
-        #     is_first_hello = request_parts[3]
-        #     add_client_to_dictionary(dictionary, addr, client_id)
-        #     dictionary[client_id_folder].append((
-        #         addr[0], client_folder))
-        #     if is_first_hello.upper() == "TRUE":
-        #         create_folder(client_id_folder)
-        #         send_all_folder(client_id_folder, connection)
+        elif command == "ask-changed":
+            time_step = float(request_parts[1])
+            send_all_folder(client_id_folder, connection, True, time_step)
         elif command == "send-dir":
             folder_path = request_parts[1]
             client_id = get_id_by_addr(dictionary, addr[0])

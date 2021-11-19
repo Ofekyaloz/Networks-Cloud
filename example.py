@@ -1,21 +1,13 @@
-import sys
-import time
-import logging
-from watchdog.observers import Observer
-from watchdog.events import LoggingEventHandler
+import os
+import signal
+from subprocess import Popen, PIPE
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-    path = sys.argv[1] if len(sys.argv) > 1 else '.'
-    event_handler = LoggingEventHandler()
-    observer = Observer()
-    observer.schedule(event_handler, path, recursive=True)
-    observer.start()
-    try:
-        while True:
-            time.sleep(1)
-    finally:
-        observer.stop()
-        observer.join()
+port = 40000
+process = Popen(["lsof", "-i", ":{0}".format(port)], stdout=PIPE, stderr=PIPE)
+stdout, stderr = process.communicate()
+for process in str(stdout.decode("utf-8")).split("\n")[1:]:       
+    data = [x for x in process.split(" ") if x != '']
+    if (len(data) <= 1):
+        continue
+
+    os.kill(int(data[1]), signal.SIGKILL)
