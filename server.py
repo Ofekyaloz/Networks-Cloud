@@ -72,16 +72,14 @@ def create_folder(folder_path):
 def send_all_folder(client_id_folder, s, get_only_modified = False,
                                          last_update_time = None):
     dir_path = client_id_folder
-    now = time.time()
-    if last_update_time is None:
-        last_update_time = now
     for (root, dirs, files) in os.walk(dir_path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
             if not (os.listdir(folder_loc)):
                 msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
                 msg_len = get_size(msg)
-                if not (get_only_modified and now - last_update_time <= 0):
+                #os.path.getmtime
+                if (not get_only_modified) or (get_only_modified and os.path.getmtime(folder_loc) - last_update_time > 0):
                     s.send(msg_len)
                     s.send(msg)
 
@@ -92,7 +90,7 @@ def send_all_folder(client_id_folder, s, get_only_modified = False,
                 filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
                 msg = filedata.encode('utf-8')
                 sum = get_size(msg)
-                if not (get_only_modified and now - last_update_time <= 0):
+                if (not get_only_modified) or (get_only_modified and os.path.getmtime(fileloc) - last_update_time > 0):
                     s.send(sum)
                     s.send(filedata.encode('utf-8'))
                     while True:
