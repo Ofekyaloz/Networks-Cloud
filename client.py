@@ -8,6 +8,7 @@ TIME_INTERVAL_INDEX = 4
 ID_INDEX = 5
 BUFFER_SIZE = 1024
 
+
 # function that checks validity of the parameters.
 def arguments_check():
     if len(sys.argv) < 5 or len(sys.argv) > 6:
@@ -148,9 +149,10 @@ def get_all_files(path):
         elif command == "finish":
             print("Finished")
             break
-        time.sleep(4)
+        time.sleep(2)
 
-msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@" + "True").encode('utf-8')
+
+msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@False").encode('utf-8')
 msg_len = get_size(msg)
 s.send(msg_len)
 s.send(msg)
@@ -158,11 +160,30 @@ if (new_client):
     send_all_files(dir_path)
 else:
     get_all_files(dir_path)
+last_viist = time.time()
 
-# while(True):
-#
-#    time.sleep(time_interval)
 
+def ask_change(last_visit):
+    msg = ("ask-changed@@@" + str(last_visit)).encode('utf-8')
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    s.send(msg)
+    data = s.recv(12)
+    data.decode('utf-8')
+    if data == "Finish":
+        return False
+    print("Have an update!")
+    return True
+
+
+while True:
+    msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@False").encode('utf-8')
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    if ask_change(last_viist):
+        get_all_files(dir_path)
+    print("sleep")
+    time.sleep(time_interval)
 
 # class FileChangedHandler(FileSystemEventHandler):
 #     def alert_file_modified(self, e):
