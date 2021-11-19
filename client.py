@@ -30,8 +30,7 @@ def arguments_check():
             print(f'time interval {time_interval} is not valid')
             return INVALID
     if not os.path.isdir(sys.argv[PATH_INDEX]):
-        print(f'Error: path: {sys.argv[PATH_INDEX]} ,does not exists')
-        return INVALID
+        create_folder(sys.argv[PATH_INDEX])
     else:
         pass
     parts = ip.split('.')
@@ -59,7 +58,7 @@ if flag == INVALID:
 ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
-time_interval = sys.argv[TIME_INTERVAL_INDEX]
+time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
@@ -76,16 +75,18 @@ else:
     client_id = data.decode('utf-8')
 
 
-def send_all_files(path):
+def send_all_files(path, first_time, last_visit):
     # root = paths, dirs = folders, files
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
+            now = os.path.getmtime(folder_loc)
             if not (os.listdir(folder_loc)):
                 msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
                 msg_len = get_size(msg)
-                s.send(msg_len)
-                s.send(msg)
+                if first_time or (last_visit - now <= 0):
+                    s.send(msg_len)
+                    s.send(msg)
 
         for file in files:
             fileloc = os.path.join(root, file)
@@ -93,15 +94,17 @@ def send_all_files(path):
                 size = os.path.getsize(fileloc)
                 msg = ("send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)).encode('utf-8')
                 msg_len = get_size(msg)
-                s.send(msg_len)
-                s.send(msg)
-                while True:
-                    # read the bytes from the file
-                    bytes_read = f.read(BUFFER_SIZE)
-                    if not bytes_read:
-                        # file transmitting is done
-                        break
-                    s.sendall(bytes_read)
+                now = os.path.getmtime(folder_loc)
+                if first_time or (last_visit - now <= 0):
+                    s.send(msg_len)
+                    s.send(msg)
+                    while True:
+                        # read the bytes from the file
+                        bytes_read = f.read(BUFFER_SIZE)
+                        if not bytes_read:
+                            # file transmitting is done
+                            break
+                        s.sendall(bytes_read)
     msg = "finish".encode('utf-8')
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -152,15 +155,15 @@ def get_all_files(path):
         time.sleep(2)
 
 
-msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@False").encode('utf-8')
+msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@True").encode('utf-8')
 msg_len = get_size(msg)
 s.send(msg_len)
 s.send(msg)
+last_viist = time.time()
 if (new_client):
-    send_all_files(dir_path)
+    send_all_files(dir_path, True, last_viist)
 else:
     get_all_files(dir_path)
-last_viist = time.time()
 
 
 def ask_change(last_visit):
@@ -168,20 +171,12 @@ def ask_change(last_visit):
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
-    data = s.recv(12)
-    data.decode('utf-8')
-    if data == "Finish":
-        return False
-    print("Have an update!")
-    return True
+    get_all_files(dir_path)
 
 
 while True:
-    msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@False").encode('utf-8')
-    msg_len = get_size(msg)
-    s.send(msg_len)
-    if ask_change(last_viist):
-        get_all_files(dir_path)
+    ask_change(last_viist)
+    last_viist = time.time()
     print("sleep")
     time.sleep(time_interval)
 
