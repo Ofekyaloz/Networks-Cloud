@@ -52,9 +52,6 @@ ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = sys.argv[TIME_INTERVAL_INDEX]
-# client_id = os.urandom(128)
-# client_id = "123456789123456789123456789123456789123456789123456789123456789123456789"
-
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
@@ -74,18 +71,31 @@ len = str(len(msg.encode('utf-8')))
 s.send((len.zfill(12)).encode('utf-8'))
 s.send(msg.encode('utf-8'))
 
+def get_size(msg):
+    sum = 0
+    for i in msg:
+        sum += 1
+    return str(sum).zfill(12).encode('utf-8')
+
 # root = paths, dirs = folders, files
 for (root, dirs, files) in os.walk(dir_path, topdown=True):
+    for folder in dirs:
+        folder_loc = os.path.join(root, folder)
+        if not (os.listdir(folder_loc)):
+            msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
+            msg_len = get_size(msg)
+            s.send(msg_len)
+            s.send(msg)
+
+
     for file in files:
         fileloc = os.path.join(root, file)
         with open(fileloc, "rb") as f:
             size = os.path.getsize(fileloc)
             filedata = "send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)
             msg = filedata.encode('utf-8')
-            sum = 0
-            for i in msg:
-                sum += 1
-            s.send((str(sum).zfill(12)).encode('utf-8'))
+            sum = get_size(msg)
+            s.send(sum)
             s.send(filedata.encode('utf-8'))
             while True:
                 # read the bytes from the file
@@ -95,9 +105,12 @@ for (root, dirs, files) in os.walk(dir_path, topdown=True):
                     break
                 s.sendall(bytes_read)
 
-msg = "finish"
-s.send(("6".zfill(12)).encode('utf-8'))
-s.send(msg.encode('utf-8'))
+msg = "finish".encode('utf-8')
+sum = get_size(msg)
+s.send(sum)
+s.send(msg)
+
+
 # class FileChangedHandler(FileSystemEventHandler):
 #     def alert_file_modified(self, e):
 #         print(f'{e.event_type}, {e.src_path}')
