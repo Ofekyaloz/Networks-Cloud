@@ -72,7 +72,7 @@ else:
     s.send("register".encode('utf-8'))
     data = s.recv(132)
     print("Server sent: ", data)
-    client_id = data
+    client_id = data.decode('utf-8')
 
 
 def send_all_files(path):
@@ -118,12 +118,12 @@ def create_folder(folder_path):
 def get_all_files(path):
     while True:
         request = s.recv(12)
-        request = request.decode('utf-8', 'IGNORE')
+        request = request.decode('utf-8', 'ignore')
         try:
             length_of_packet = int(request)
         except:
             length_of_packet = 1024
-        request = s.recv(length_of_packet).decode('utf-8', 'IGNORE')
+        request = s.recv(length_of_packet).decode('utf-8', 'ignore')
 
         request_parts = request.split("@@@")
         command = request_parts[0]
@@ -148,7 +148,7 @@ def get_all_files(path):
         elif command == "finish":
             print("Finished")
             break
-        time.sleep(2)
+        time.sleep(4)
 
 msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@" + "True").encode('utf-8')
 msg_len = get_size(msg)
@@ -159,7 +159,9 @@ if (new_client):
 else:
     get_all_files(dir_path)
 
-
+# while(True):
+#
+#    time.sleep(time_interval)
 
 
 # class FileChangedHandler(FileSystemEventHandler):
@@ -176,4 +178,5 @@ else:
 #     observer.stop()
 #
 # observer.join()
+
 s.close()
