@@ -44,6 +44,15 @@ def add_client_to_dictionary(dictionary, addr):
 UTF = "UTF-8"
 IGNORE = "ignore"
 
+
+def create_folder(folder_path):
+    try:
+        os.makedirs(folder_path)
+        print("created folder " + folder_path)
+    except Exception as e:
+        print("folder " + folder_path + " already exists.")
+
+
 while True:
     connection, addr = server.accept()  # Establish connection with client.
     print('Connected:', addr)
@@ -67,33 +76,36 @@ while True:
             client_id = os.urandom(128)
             add_client_to_dictionary(dictionary, addr)
             connection.send(client_id)
-        if command == "hello":
+        elif command == "hello":
             client_id = request_parts[1]
             client_id_folder = client_id[0:15]
             client_folder = request_parts[2]
             add_client_to_dictionary(dictionary, addr)
             dictionary[client_id_folder].append((
                 addr[0], client_folder))
-            try:
-                os.makedirs(client_id_folder)
-                print("created folder " + client_id_folder)
-            except Exception as e:
-                print("folder " + client_folder + " already exists.");
-        if command == "send-file":
+            create_folder(client_id_folder)
+        elif command == "send-dir":
+            folder_path = request_parts[1]
+            client_id = get_id_by_addr(dictionary, addr[0])
+            client_folder = get_folder_by_id(dictionary, client_id)
+            folder_path = folder_path.replace(client_folder, client_id)
+            create_folder(folder_path)
+        elif command == "send-file":
             file_name = request_parts[1]
             file_size = int(request_parts[2])
             file_path = request_parts[3]
             client_id = get_id_by_addr(dictionary, addr[0])
-            # /home/ofek/Desktop/temp/ofek - 1234
-            # /home/ofek/Desktop/temp/ofek1 - 1234
+            # /home/ofek/Desktop/temp/ofek
             client_folder = get_folder_by_id(dictionary, client_id)
             file_path = file_path.replace(client_folder, client_id[0:15])
+            folder = file_path.replace(file_name, "")
+            create_folder(folder)
             f = open(file_path, 'wb+')
             data = connection.recv(file_size)
             print("Writing to file...")
             f.write(data)
             f.close()
-        if command == "finish":
+        elif command == "finish":
             connection.close()
             print("Finished and went to wait to other clients.")
             break
