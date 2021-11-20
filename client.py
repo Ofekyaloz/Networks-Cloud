@@ -298,6 +298,8 @@ try:
         print("send finish")
         s.close()
         time.sleep(time_interval)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
 
 except KeyboardInterrupt:
     observer.stop()
