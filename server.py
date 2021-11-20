@@ -305,7 +305,7 @@ while True:
             f.write(data)
             f.close()
         elif command == FINISH:
-            #connection.close()
+            connection.close()
             print("Finished and went to wait to other clients.")
             break
         time.sleep(SLEEP_INTERVAL)

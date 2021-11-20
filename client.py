@@ -30,7 +30,8 @@ SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
 WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
-
+global s
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 def get_client_id_folder(client_id):
     return client_id[:CLIENT_SHORT_ID_LENGTH]
@@ -85,8 +86,6 @@ ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 new_client = False
 
@@ -101,7 +100,7 @@ else:
     client_id = data.decode(UTF)
 
 
-def send_all_files(path, first_time, last_visit):
+def send_all_files(path, first_time, last_visit, s):
     # root = paths, dirs = folders, files
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
@@ -135,6 +134,10 @@ def send_all_files(path, first_time, last_visit):
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
+
+    s.close()
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, port))
 
 
 def create_folder(folder_path):
@@ -217,7 +220,7 @@ s.send(msg_len)
 s.send(msg)
 last_visit = time.time()
 if new_client:
-    send_all_files(dir_path, True, last_visit)
+    send_all_files(dir_path, True, last_visit, s)
 else:
     get_changes_from_server(dir_path)
 
@@ -296,7 +299,13 @@ try:
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
+
         print("send finish")
+
+        s.close()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+
         time.sleep(time_interval)
         msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True"])).encode(UTF)
         msg_len = get_size(msg)
