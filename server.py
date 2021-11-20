@@ -153,7 +153,7 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
             with open(file_location, READ_BYTES) as f:
                 # opens a file and sends all of it.
                 size = os.path.getsize(file_location)
-                file_data = DELIMITER.join(SEND_FILE, str(file), str(size), str(file_location))
+                file_data = DELIMITER.join([SEND_FILE, str(file), str(size), str(file_location)])
                 msg = file_data.encode(UTF)
                 sum = get_size(msg)
                 if (not get_only_modified) or (get_only_modified and os.path.getmtime(file_location) - last_update_time > 0):
