@@ -32,8 +32,7 @@ SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
 WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
-global s
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 
 def create_folder(folder_path):
     try:
@@ -95,6 +94,7 @@ ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 new_client = False
 
@@ -141,9 +141,6 @@ def send_all_files(path, s):
     s.send(msg_len)
     s.send(msg)
     s.close()
-
-
-
 
 
 def get_changes_from_server(path):
@@ -275,12 +272,7 @@ def on_created(event):
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
-    if os.path.isfile(event.src_path):
-        msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id)])).encode(UTF)
-    elif os.path.isdir(event.src_path):
-        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
-    else:
-        return
+    msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
     send_watch(s, msg)
 
 
