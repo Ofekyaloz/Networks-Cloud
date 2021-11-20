@@ -240,17 +240,40 @@ class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
         print(f'{e.event_type}, {e.src_path}')
 
+
+def send_file(s, fileloc, file, client_id):
+    with open(fileloc, READ_BYTES) as f:
+        size = os.path.getsize(fileloc)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id)])).encode(UTF)
+        msg_len = get_size(msg)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+        s.send(msg_len)
+        s.send(msg)
+        while True:
+            # read the bytes from the file
+            bytes_read = f.read(BUFFER_SIZE)
+            if not bytes_read:
+                # file transmitting is done
+                break
+            try:
+                s.sendall(bytes_read)
+            except:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.connect((ip, port))
+                s.sendall(bytes_read)
+                s.close()
+
 def on_created(event):
     print(f"created {event.src_path}")
     if os.path.isfile(event.src_path):
-        size = os.path.getsize(event.src_path)
         file = os.path.basename(event.src_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+        send_file(s, event.src_path, file, client_id)
     elif os.path.isdir(event.src_path):
         msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id)])).encode(UTF)
+        send_watch(s, msg)
     else:
         return
-    send_watch(s, msg)
 
 
 def on_deleted(event):
@@ -276,10 +299,11 @@ def on_deleted(event):
 
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
-    if str(event.src_path).startswith(".goutputstream"):
+    if (".goutputstream") in str(event.src_path):
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+        send_file(s, event.dest_path, file, client_id)
+        return
     elif os.path.isfile(event.src_path):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
     elif os.path.isdir(event.src_path):
@@ -311,6 +335,7 @@ def send_watch(s, msg):
         s.send(msg_len)
         s.send(msg)
         s.close()
+    print("message len: ", msg_len)
     print("sent event: ", msg)
 
 try:
@@ -321,7 +346,7 @@ try:
         ask_change(last_visit)
         last_visit = time.time()
         print("sleep")
-        s.close()
+        #s.close()
         time.sleep(time_interval)
 
 
