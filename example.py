@@ -2,7 +2,7 @@ import os
 import signal
 from subprocess import Popen, PIPE
 
-port = 42000
+port = 48000
 process = Popen(["lsof", "-i", ":{0}".format(port)], stdout=PIPE, stderr=PIPE)
 stdout, stderr = process.communicate()
 for process in str(stdout.decode("utf-8")).split("\n")[1:]:       

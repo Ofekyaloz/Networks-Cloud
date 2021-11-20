@@ -212,11 +212,11 @@ while True:
         try:
             length_of_packet = int(request)
         except Exception as e:
-            print(e)
+            #print(e)
             #raise e
             length_of_packet = BUFFER_SIZE
         request = connection.recv(length_of_packet).decode(UTF, IGNORE)
-
+        print(request)
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
         # if it's the first time of the client, then it gets ID.
