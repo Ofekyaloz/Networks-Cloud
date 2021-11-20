@@ -107,7 +107,7 @@ def send_all_files(path, first_time, last_visit, s):
             folder_loc = os.path.join(root, folder)
             now = os.path.getmtime(folder_loc)
             if not (os.listdir(folder_loc)):
-                msg = (DELIMITER.join([SEND_DIR, str(folder_loc)])).encode(UTF)
+                msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id)])).encode(UTF)
                 msg_len = get_size(msg)
                 if first_time or (last_visit - now <= 0):
                     s.send(msg_len)
@@ -117,7 +117,7 @@ def send_all_files(path, first_time, last_visit, s):
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
                 size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc)])).encode(UTF)
+                msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id)])).encode(UTF)
                 msg_len = get_size(msg)
                 now = os.path.getmtime(folder_loc)
                 if first_time or (last_visit - now <= 0):
@@ -224,7 +224,7 @@ else:
 
 def ask_change(last_visit):
     print("ask change")
-    msg = (DELIMITER.join([ASK_CHANGED, str(last_visit)])).encode(UTF)
+    msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -237,7 +237,7 @@ class FileChangedHandler(FileSystemEventHandler):
 
 def on_created(event):
     print(f"created {event.src_path}")
-    msg = (DELIMITER.join([SEND_DIR, str(event.src_path)])).encode(UTF)
+    msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -245,7 +245,7 @@ def on_created(event):
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
-    msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path)])).encode(UTF)
+    msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -257,7 +257,7 @@ def on_modified(event):
     if file.startswith("."):
         return
     size = os.path.getsize(event.src_path)
-    msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path)])).encode(UTF)
+    msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -265,7 +265,7 @@ def on_modified(event):
 
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
-    msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path)])).encode(UTF)
+    msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
