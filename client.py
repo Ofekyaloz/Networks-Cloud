@@ -254,9 +254,9 @@ def on_deleted(event):
 
 def on_modified(event):
     print(f"modified {event.src_path} ")
-    file = os.listdir(event.src_path)[0]
+    file = os.path.basename(event.src_path)
     size = os.path.getsize(event.src_path)
-    msg = (DELIMITER.join([SEND_FILE, str(file), str(size), + str(event.src_path)])).encode(UTF)
+    msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -281,17 +281,20 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 try:
     while True:
+        print("awake")
         ask_change(last_visit)
         last_visit = time.time()
         print("sleep")
-        time.sleep(time_interval)
         msg = "finish".encode('utf-8')
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
         print("send finish")
+        s.close()
+        time.sleep(time_interval)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+
 except KeyboardInterrupt:
     observer.stop()
     observer.join()
-
-s.close()
