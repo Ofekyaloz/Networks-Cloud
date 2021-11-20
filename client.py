@@ -35,6 +35,13 @@ SLEEP_INTERVAL = 2
 global s
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+def create_folder(folder_path):
+    try:
+        os.makedirs(folder_path)
+        print("created folder " + folder_path)
+    except Exception as e:
+        print("folder " + folder_path + " already exists.")
+
 def get_client_id_folder(client_id):
     return client_id[:CLIENT_SHORT_ID_LENGTH]
 
@@ -139,12 +146,7 @@ def send_all_files(path, first_time, last_visit, s):
     s.close()
 
 
-def create_folder(folder_path):
-    try:
-        os.makedirs(folder_path)
-        print("created folder " + folder_path)
-    except Exception as e:
-        print("folder " + folder_path + " already exists.")
+
 
 
 def get_changes_from_server(path):
