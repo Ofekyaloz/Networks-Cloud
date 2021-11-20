@@ -207,6 +207,7 @@ def get_changes_from_server(path):
 
         elif command == FINISH:
             print("Finished")
+            s.close()
             break
         time.sleep(SLEEP_INTERVAL)
 
@@ -274,12 +275,6 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 print("sleep")
 time.sleep(time_interval)
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((ip, port))
-msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
-msg_len = get_size(msg)
-s.send(msg_len)
-s.send(msg)
 
 def send_watch(s, msg):
     msg_len = get_size(msg)
@@ -296,26 +291,19 @@ def send_watch(s, msg):
         s.send(msg_len)
         s.send(msg)
         s.close()
+    print("sent event: ", msg)
 
 try:
     while True:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
         print("awake")
         ask_change(last_visit)
         last_visit = time.time()
         print("sleep")
-        msg = "finish".encode('utf-8')
-        msg_len = get_size(msg)
-        s.send(msg_len)
-        s.send(msg)
-        print("send finish")
         s.close()
         time.sleep(time_interval)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip, port))
-        msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
-        msg_len = get_size(msg)
-        s.send(msg_len)
-        s.send(msg)
+
 
 except KeyboardInterrupt:
     observer.stop()
