@@ -199,6 +199,7 @@ def send_important_folder_changes(dictionary, client_id, changes, my_last_update
                     connection.send(request.encode())
 
 
+client_id = EMPTY_STRING
 while True:
     connection, addr = server.accept()
     print('connected in address:', addr)
@@ -208,10 +209,10 @@ while True:
     while True:
         request = connection.recv(MESSAGE_LENGTH_HEADER_SIZE)
         request = request.decode(UTF, IGNORE)
-        client_id = EMPTY_STRING
         try:
             length_of_packet = int(request)
-        except:
+        except Exception as e:
+            raise e
             length_of_packet = BUFFER_SIZE
         request = connection.recv(length_of_packet).decode(UTF, IGNORE)
 
@@ -227,6 +228,7 @@ while True:
         # if the client tells about moving folder, the server keeps it
         # and will update other connections with the same client_id.
         elif command == ALERT_MOVED_FOLDER:
+            client_id = request_parts[3]
             add_changes(changes, client_id + client_folder, request)
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
@@ -243,6 +245,7 @@ while True:
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
         elif command == ALERT_DELETED_FOLDER:
+            client_id = request_parts[2]
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
             # /home/noam/example
@@ -277,6 +280,7 @@ while True:
                 send_all_folder(client_id_folder, connection)
         # the client asks the server if there was a change.
         elif command == ASK_CHANGED:
+            client_id = request_parts[2]
             my_last_update_time = float(request_parts[1])
             # the server tell the client about moving folders.
             send_important_folder_changes(dictionary, client_id, changes, my_last_update_time, connection)
@@ -284,6 +288,7 @@ while True:
             send_all_folder(client_id_folder, connection, True, my_last_update_time)
         elif command == SEND_DIR:
             folder_path = request_parts[1]
+            client_id = request_parts[2]
             client_id = get_id_by_addr(dictionary, addr[0])
             client_folder = get_folder_by_id(dictionary, client_id)
             folder_path = folder_path.replace(client_folder, client_id)
@@ -294,6 +299,7 @@ while True:
             file_name = request_parts[1]
             file_size = int(request_parts[2])
             file_path = request_parts[3]
+            client_id = request_parts[4]
             client_id = get_id_by_addr(dictionary, addr[0])
             client_folder = get_folder_by_id(dictionary, client_id)
             file_path = file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
