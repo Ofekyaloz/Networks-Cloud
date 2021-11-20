@@ -57,7 +57,7 @@ def get_folder_by_id(dictionary, id):
     # the dictionary is for example:
     # { 'ABcdefg12356683', [('25.123.134.21', 'ofek/noam/temp')] }
     for client_id, value in dictionary.items():
-        if client_id == id:
+        if id[:15] == client_id:
             client_folder = value[0][1]
             return client_folder
     return EMPTY_FOLDER
@@ -72,7 +72,8 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
     server.bind((HOST_IP, int(sys.argv[PORT_INDEX])))
-except:
+except Exception as e:
+    print(e)
     print("An invalid port was entered.");
 
 server.listen(LISTEN_AMOUNT)
@@ -156,7 +157,7 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                 file_data = DELIMITER.join([SEND_FILE, str(file), str(size), str(file_location)])
                 msg = file_data.encode(UTF)
                 sum = get_size(msg)
-                if (not get_only_modified) or (get_only_modified and os.path.getmtime(file_location) - last_update_time > 0):
+                if (not get_only_modified) or (get_only_modified and os.path.getmtime(file_location) - last_update_time > 16):
                     conn.send(sum)
                     conn.send(file_data.encode(UTF))
                     while True:
@@ -171,7 +172,6 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
     sum = get_size(msg)
     conn.send(sum)
     conn.send(msg)
-
 # if client told the server about change in its folder,
 # the server will keep it in a list, and when another client
 # with the same id will come the server will tell him
@@ -212,7 +212,8 @@ while True:
         try:
             length_of_packet = int(request)
         except Exception as e:
-            raise e
+            print(e)
+            #raise e
             length_of_packet = BUFFER_SIZE
         request = connection.recv(length_of_packet).decode(UTF, IGNORE)
 
@@ -229,6 +230,7 @@ while True:
         # and will update other connections with the same client_id.
         elif command == ALERT_MOVED_FOLDER:
             client_id = request_parts[3]
+            client_folder = get_folder_by_id(dictionary, client_id)
             add_changes(changes, client_id + client_folder, request)
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
@@ -241,9 +243,37 @@ while True:
             # Acdbhd1348/home/example
             new_folder_path = new_folder_path.replace(client_folder, client_dir)
             os.rename(old_folder_path, new_folder_path)
+        elif command == "alert-moved-file":
+            client_id = request_parts[3]
+            client_folder = get_folder_by_id(dictionary, client_id)
+            add_changes(changes, client_id + client_folder, request)
+            # /home/noam
+            client_folder = get_folder_by_id(dictionary, client_id)
+            # Acdbhd1348
+            client_dir = get_client_id_folder(client_id)
+            old_file_path = request_parts[1]
+            # Acdbhd1348/home/noam
+            old_file_path = old_folder_path.replace(client_folder, client_dir)
+            new_file_path = request_parts[2]
+            # Acdbhd1348/home/example
+            new_file_path = new_file_path.replace(client_folder, client_dir)
+            os.rename(old_file_path, new_file_path)
         # if the client tells the server about deleting a folder
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
+        elif command == "alert-deleted-file":
+            client_id = request_parts[2]
+            # /home/noam
+            client_folder = get_folder_by_id(dictionary, client_id)
+            # /home/noam/example
+            path_in_file = request_parts[1]
+            # Acdbhd1348
+            client_dir = get_client_id_folder(client_id)
+            # Acdbhd1348/home/noam
+            path_to_delete = path_in_file.replace(client_folder, client_dir)
+            # the server delete the folder in its side.
+            os.remove(path_to_delete)
+            add_changes(changes, client_id + client_folder, request)
         elif command == ALERT_DELETED_FOLDER:
             client_id = request_parts[2]
             # /home/noam
@@ -286,6 +316,8 @@ while True:
             send_important_folder_changes(dictionary, client_id, changes, my_last_update_time, connection)
             # the server sends the file to the client.
             send_all_folder(client_id_folder, connection, True, my_last_update_time)
+            connection.close()
+            break
         elif command == SEND_DIR:
             folder_path = request_parts[1]
             client_id = request_parts[2]
