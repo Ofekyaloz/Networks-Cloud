@@ -227,7 +227,6 @@ while True:
             add_client_to_dictionary(dictionary, client_id)
             connection.send(client_id.encode())
             #connection.close()
-            break
         # if the client tells about moving folder, the server keeps it
         # and will update other connections with the same client_id.
         elif command == ALERT_MOVED_FOLDER:
@@ -246,7 +245,6 @@ while True:
             new_folder_path = new_folder_path.replace(client_folder, client_dir)
             os.rename(old_folder_path, new_folder_path)
             #connection.close()
-            break
         elif command == "alert-moved-file":
             client_id = request_parts[3]
             client_folder = get_folder_by_id(dictionary, client_id)
@@ -263,7 +261,6 @@ while True:
             new_file_path = new_file_path.replace(client_folder, client_dir)
             os.rename(old_file_path, new_file_path)
             #connection.close()
-            break
         # if the client tells the server about deleting a folder
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
@@ -281,7 +278,6 @@ while True:
             os.remove(path_to_delete)
             add_changes(changes, client_id + client_folder, request)
             #connection.close()
-            break
         elif command == ALERT_DELETED_FOLDER:
             client_id = request_parts[2]
             # /home/noam
@@ -292,6 +288,11 @@ while True:
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
             path_to_delete = path_in_client.replace(client_folder, client_dir)
+            if (os.path.isfile(path_to_delete)):
+                os.remove(path_to_delete)
+                request.replace("folder", "file")
+                add_changes(changes, client_id + client_folder, request)
+                break
             # the server delete the folder in its side.
             for root, folders, files in os.walk(path_to_delete, topdown=False):
                 for name_of_file in files:
@@ -300,7 +301,6 @@ while True:
                     os.rmdir(os.path.join(root, name_of_file))
             add_changes(changes, client_id + client_folder, request)
             #connection.close()
-            break
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
         # send it in every request as parameter.
@@ -319,7 +319,6 @@ while True:
                 create_folder(client_id_folder)
                 send_all_folder(client_id_folder, connection)
             #connection.close()
-            break
         # the client asks the server if there was a change.
         elif command == ASK_CHANGED:
             client_id = request_parts[2]
