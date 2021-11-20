@@ -109,7 +109,7 @@ else:
     client_id = data.decode(UTF)
 
 
-def send_all_files(path, first_time, last_visit, s):
+def send_all_files(path, s):
     # root = paths, dirs = folders, files
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
@@ -118,9 +118,8 @@ def send_all_files(path, first_time, last_visit, s):
             if not (os.listdir(folder_loc)):
                 msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id)])).encode(UTF)
                 msg_len = get_size(msg)
-                if first_time or (last_visit - now <= 0):
-                    s.send(msg_len)
-                    s.send(msg)
+                s.send(msg_len)
+                s.send(msg)
 
         for file in files:
             fileloc = os.path.join(root, file)
@@ -128,17 +127,15 @@ def send_all_files(path, first_time, last_visit, s):
                 size = os.path.getsize(fileloc)
                 msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id)])).encode(UTF)
                 msg_len = get_size(msg)
-                now = os.path.getmtime(folder_loc)
-                if first_time or (last_visit - now <= 0):
-                    s.send(msg_len)
-                    s.send(msg)
-                    while True:
-                        # read the bytes from the file
-                        bytes_read = f.read(BUFFER_SIZE)
-                        if not bytes_read:
-                            # file transmitting is done
-                            break
-                        s.sendall(bytes_read)
+                s.send(msg_len)
+                s.send(msg)
+                while True:
+                    # read the bytes from the file
+                    bytes_read = f.read(BUFFER_SIZE)
+                    if not bytes_read:
+                        # file transmitting is done
+                        break
+                    s.sendall(bytes_read)
     msg = FINISH.encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -222,7 +219,7 @@ s.send(msg_len)
 s.send(msg)
 last_visit = time.time()
 if new_client:
-    send_all_files(dir_path, True, last_visit, s)
+    send_all_files(dir_path, s)
 else:
     get_changes_from_server(dir_path)
 
@@ -240,8 +237,8 @@ class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
         print(f'{e.event_type}, {e.src_path}')
 
-
-def send_file(s, fileloc, file, client_id):
+# send file
+def send_file(s , fileloc, file, client_id):
     with open(fileloc, READ_BYTES) as f:
         size = os.path.getsize(fileloc)
         msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id)])).encode(UTF)
@@ -334,7 +331,7 @@ def send_watch(s, msg):
         s.connect((ip, port))
         s.send(msg_len)
         s.send(msg)
-        s.close()
+    s.close()
     print("message len: ", msg_len)
     print("sent event: ", msg)
 
@@ -346,7 +343,7 @@ try:
         ask_change(last_visit)
         last_visit = time.time()
         print("sleep")
-        #s.close()
+        s.close()
         time.sleep(time_interval)
 
 
