@@ -32,8 +32,7 @@ SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
 WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
-global s
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
 
 def create_folder(folder_path):
     try:
@@ -95,6 +94,7 @@ ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 new_client = False
 
@@ -148,7 +148,7 @@ def send_all_files(path, s):
 
 
 
-def get_changes_from_server(path):
+def get_changes_from_server(s, path):
     while True:
         request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
 
@@ -228,7 +228,7 @@ last_visit = time.time()
 if new_client:
     send_all_files(dir_path, s)
 else:
-    get_changes_from_server(dir_path)
+    get_changes_from_server(s, dir_path)
 
 
 def ask_change(last_visit):
@@ -239,7 +239,7 @@ def ask_change(last_visit):
     s.connect((ip, port))
     s.send(msg_len)
     s.send(msg)
-    get_changes_from_server(dir_path)
+    get_changes_from_server(s, dir_path)
     s.close()
 
 class FileChangedHandler(FileSystemEventHandler):
