@@ -285,6 +285,11 @@ try:
         last_visit = time.time()
         print("sleep")
         time.sleep(time_interval)
+        msg = "finish".encode('utf-8')
+        msg_len = get_size(msg)
+        s.send(msg_len)
+        s.send(msg)
+        print("send finish")
 except KeyboardInterrupt:
     observer.stop()
     observer.join()
