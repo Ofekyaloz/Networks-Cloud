@@ -226,7 +226,7 @@ while True:
             print(client_id)
             add_client_to_dictionary(dictionary, client_id)
             connection.send(client_id.encode())
-            connection.close()
+            #connection.close()
             break
         # if the client tells about moving folder, the server keeps it
         # and will update other connections with the same client_id.
@@ -245,7 +245,7 @@ while True:
             # Acdbhd1348/home/example
             new_folder_path = new_folder_path.replace(client_folder, client_dir)
             os.rename(old_folder_path, new_folder_path)
-            connection.close()
+            #connection.close()
             break
         elif command == "alert-moved-file":
             client_id = request_parts[3]
@@ -262,7 +262,7 @@ while True:
             # Acdbhd1348/home/example
             new_file_path = new_file_path.replace(client_folder, client_dir)
             os.rename(old_file_path, new_file_path)
-            connection.close()
+            #connection.close()
             break
         # if the client tells the server about deleting a folder
         # it will keep it, and will update other clients with the same id.
@@ -280,7 +280,7 @@ while True:
             # the server delete the folder in its side.
             os.remove(path_to_delete)
             add_changes(changes, client_id + client_folder, request)
-            connection.close()
+            #connection.close()
             break
         elif command == ALERT_DELETED_FOLDER:
             client_id = request_parts[2]
@@ -299,7 +299,7 @@ while True:
                 for name_of_file in folders:
                     os.rmdir(os.path.join(root, name_of_file))
             add_changes(changes, client_id + client_folder, request)
-            connection.close()
+            #connection.close()
             break
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
@@ -318,7 +318,7 @@ while True:
             if is_first_hello.upper() == TRUE:
                 create_folder(client_id_folder)
                 send_all_folder(client_id_folder, connection)
-            connection.close()
+            #connection.close()
             break
         # the client asks the server if there was a change.
         elif command == ASK_CHANGED:
@@ -328,7 +328,7 @@ while True:
             send_important_folder_changes(dictionary, client_id, changes, my_last_update_time, connection)
             # the server sends the file to the client.
             send_all_folder(client_id_folder, connection, True, my_last_update_time)
-            connection.close()
+            #connection.close()
             break
         elif command == SEND_DIR:
             folder_path = request_parts[1]
@@ -338,7 +338,7 @@ while True:
             folder_path = folder_path.replace(client_folder, client_id)
             # the server creates directory as the client told him.
             create_folder(folder_path)
-            connection.close()
+            #connection.close()
             break
         elif command == SEND_FILE:
             # the server receives a file from the client.
@@ -356,10 +356,10 @@ while True:
             print("Writing to file...")
             f.write(data)
             f.close()
-            connection.close()
+            #connection.close()
             break
         elif command == FINISH:
-            connection.close()
+            #connection.close()
             print("Finished and went to wait to other clients.")
             break
         time.sleep(SLEEP_INTERVAL)

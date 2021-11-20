@@ -151,8 +151,6 @@ def send_all_files(path, s):
 def get_changes_from_server(path):
     while True:
         request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip, port))
 
         request = request.decode(UTF, IGNORE)
         try:
