@@ -77,18 +77,16 @@ else:
     client_id = data.decode('utf-8')
 
 
-def send_all_files(path, first_time, last_visit):
+def send_all_files(path):
     # root = paths, dirs = folders, files
-    for (root, dirs, files) in os.walk(path, topdown=True):
-        for folder in dirs:
+    for (root, folders, files) in os.walk(path, topdown=True):
+        for folder in folders:
             folder_loc = os.path.join(root, folder)
-            now = os.path.getmtime(folder_loc)
             if not (os.listdir(folder_loc)):
                 msg = ("send-dir" + "@@@" + str(folder_loc)).encode('utf-8')
                 msg_len = get_size(msg)
-                if first_time or (last_visit - now <= 0):
-                    s.send(msg_len)
-                    s.send(msg)
+                s.send(msg_len)
+                s.send(msg)
 
         for file in files:
             fileloc = os.path.join(root, file)
@@ -96,17 +94,15 @@ def send_all_files(path, first_time, last_visit):
                 size = os.path.getsize(fileloc)
                 msg = ("send-file@@@" + str(file) + "@@@" + str(size) + "@@@" + str(fileloc)).encode('utf-8')
                 msg_len = get_size(msg)
-                now = os.path.getmtime(folder_loc)
-                if first_time or (last_visit - now <= 0):
-                    s.send(msg_len)
-                    s.send(msg)
-                    while True:
-                        # read the bytes from the file
-                        bytes_read = f.read(BUFFER_SIZE)
-                        if not bytes_read:
-                            # file transmitting is done
-                            break
-                        s.sendall(bytes_read)
+                s.send(msg_len)
+                s.send(msg)
+                while True:
+                    # read the bytes from the file
+                    bytes_read = f.read(BUFFER_SIZE)
+                    if not bytes_read:
+                        # file transmitting is done
+                        break
+                    s.sendall(bytes_read)
     msg = "finish".encode('utf-8')
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -151,6 +147,21 @@ def get_all_files(path):
             f.write(data)
             f.close()
 
+        elif command == "alert-delete-folder":
+            delete_path = request[1]
+            delete_path = delete_path.replace(client_id[0:15], path)
+            for root, folders, files in os.walk(delete_path, topdown=False):
+                for file in files:
+                    os.remove(os.path.join(root, file))
+                for folder in folders:
+                    os.rmdir(os.path.join(root, folder))
+
+        elif command == "alert-moved-folder":
+            src_path = request[1]
+            dest_path = request[2]
+
+
+
         elif command == "finish":
             print("Finished")
             break
@@ -163,7 +174,7 @@ s.send(msg_len)
 s.send(msg)
 last_viist = time.time()
 if (new_client):
-    send_all_files(dir_path, True, last_viist)
+    send_all_files(dir_path)
 else:
     get_all_files(dir_path)
 
@@ -173,7 +184,10 @@ def ask_change(last_visit):
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
+    print("ask-change")
     get_all_files(dir_path)
+    print("received changes")
+    time.sleep(2)
 
 class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
@@ -226,10 +240,21 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 try:
     while True:
+        print("awake")
+        msg = ("hello@@@" + str(client_id) + "@@@" + dir_path + "@@@False").encode('utf-8')
+        msg_len = get_size(msg)
+        s.send(msg_len)
+        s.send(msg)
         ask_change(last_viist)
         last_viist = time.time()
+        msg = "finish".encode('utf-8')
+        msg_len = get_size(msg)
+        s.send(msg_len)
+        s.send(msg)
+        print("send finish")
         print("sleep")
         time.sleep(time_interval)
+
 except KeyboardInterrupt:
     observer.stop()
     observer.join()
