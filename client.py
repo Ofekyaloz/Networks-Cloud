@@ -25,6 +25,8 @@ SEND_DIR = "send-dir"
 FINISH = "finish"
 ALERT_DELETED_FOLDER = "alert-deleted-folder"
 ALERT_MOVED_FOLDER = "alert-moved-folder"
+ALERT_DELETED_FILE = "alert-deleted-file"
+ALERT_MOVED_FILE = "alert-moved-file"
 SEND_DIR = "send-dir"
 SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
@@ -238,36 +240,56 @@ class FileChangedHandler(FileSystemEventHandler):
 
 def on_created(event):
     print(f"created {event.src_path}")
-    msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id)])).encode(UTF)
-    send_watch(s,msg)
+    if os.path.isfile(event.src_path):
+        size = os.path.getsize(event.src_path)
+        file = os.path.basename(event.src_path)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+    elif os.path.isdir(event.src_path):
+        msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id)])).encode(UTF)
+    else:
+        return
+    send_watch(s, msg)
 
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
-    msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
-    send_watch(s,msg)
-
-
-def on_modified(event):
-    print(f"modified {event.src_path} ")
-    file = os.path.basename(event.src_path)
-    if file.startswith("."):
+    if os.path.isfile(event.src_path):
+        msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id)])).encode(UTF)
+    elif os.path.isdir(event.src_path):
+        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
+    else:
         return
-    size = os.path.getsize(event.src_path)
-    msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
-    send_watch(s,msg)
+    send_watch(s, msg)
+
+
+# def on_modified(event):
+#     print(f"modified {event.src_path} ")
+#     file = os.path.basename(event.src_path)
+#     if file.startswith("."):
+#         return
+#     size = os.path.getsize(event.src_path)
+#     msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+#     send_watch(s,msg)
 
 
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
-    msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
-    send_watch(s,msg)
-
+    if str(event.src_path).startswith(".goutputstream"):
+        size = os.path.getsize(event.dest_path)
+        file = os.path.basename(event.dest_path)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+    elif os.path.isfile(event.src_path):
+        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
+    elif os.path.isdir(event.src_path):
+        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
+    else:
+        return
+    send_watch(s, msg)
 
 handler = PatternMatchingEventHandler("*", None, False, True)
 handler.on_created = on_created
 handler.on_deleted = on_deleted
-handler.on_modified = on_modified
+# handler.on_modified = on_modified
 handler.on_moved = on_moved
 observer = Observer()
 observer.schedule(handler, path=dir_path, recursive=True)
@@ -284,10 +306,6 @@ def send_watch(s, msg):
     except:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
-        hello = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
-        hello_len = get_size(hello)
-        s.send(hello_len)
-        s.send(hello)
         s.send(msg_len)
         s.send(msg)
         s.close()

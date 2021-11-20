@@ -27,7 +27,7 @@ def on_moved(event):
 handler = PatternMatchingEventHandler("*", None, False, True)
 handler.on_created = on_created
 handler.on_deleted = on_deleted
-handler.on_modified = on_modified
+#handler.on_modified = on_modified
 handler.on_moved = on_moved
 
 observer = Observer()
