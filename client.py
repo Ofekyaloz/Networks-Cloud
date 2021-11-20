@@ -238,17 +238,13 @@ class FileChangedHandler(FileSystemEventHandler):
 def on_created(event):
     print(f"created {event.src_path}")
     msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id)])).encode(UTF)
-    msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send_watch(s,msg)
 
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
     msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
-    msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send_watch(s,msg)
 
 
 def on_modified(event):
@@ -258,17 +254,13 @@ def on_modified(event):
         return
     size = os.path.getsize(event.src_path)
     msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
-    msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send_watch(s,msg)
 
 
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
-    msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send_watch(s,msg)
 
 
 handler = PatternMatchingEventHandler("*", None, False, True)
@@ -280,7 +272,7 @@ observer = Observer()
 observer.schedule(handler, path=dir_path, recursive=True)
 
 observer.start()
-
+print("sleep")
 time.sleep(time_interval)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
@@ -288,6 +280,22 @@ msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
 msg_len = get_size(msg)
 s.send(msg_len)
 s.send(msg)
+
+def send_watch(s, msg):
+    msg_len = get_size(msg)
+    try:
+        s.send(msg_len)
+        s.send(msg)
+    except:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+        hello = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
+        hello_len = get_size(hello)
+        s.send(hello_len)
+        s.send(hello)
+        s.send(msg_len)
+        s.send(msg)
+        s.close()
 
 try:
     while True:
@@ -308,7 +316,6 @@ try:
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-
 
 except KeyboardInterrupt:
     observer.stop()
