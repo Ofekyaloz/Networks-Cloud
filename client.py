@@ -32,7 +32,8 @@ SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
 WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
-
+global s
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 def create_folder(folder_path):
     try:
@@ -94,7 +95,6 @@ ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
 dir_path = sys.argv[PATH_INDEX]
 time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 new_client = False
 
@@ -105,11 +105,9 @@ else:
     s.send(('8'.zfill(12)).encode(UTF))
     s.send(REGISTER.encode(UTF))
     data = s.recv(132)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((ip, port))
-
     print("Server sent: ", data)
     client_id = data.decode(UTF)
+
 
 def send_all_files(path, s):
     # root = paths, dirs = folders, files
@@ -148,18 +146,15 @@ def send_all_files(path, s):
 
 
 
-def get_changes_from_server(s, path):
+def get_changes_from_server(path):
     while True:
         request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
-
         request = request.decode(UTF, IGNORE)
         try:
             length_of_packet = int(request)
         except:
             length_of_packet = BUFFER_SIZE
         request = s.recv(length_of_packet).decode(UTF, IGNORE)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip, port))
 
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
@@ -207,8 +202,6 @@ def get_changes_from_server(s, path):
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data = s.recv(file_size)
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((ip, port))
             print("Writing to file...")
             f.write(data)
             f.close()
@@ -228,19 +221,17 @@ last_visit = time.time()
 if new_client:
     send_all_files(dir_path, s)
 else:
-    get_changes_from_server(s, dir_path)
+    get_changes_from_server(dir_path)
 
 
 def ask_change(last_visit):
     print("ask change")
     msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id)])).encode(UTF)
     msg_len = get_size(msg)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((ip, port))
     s.send(msg_len)
     s.send(msg)
-    get_changes_from_server(s, dir_path)
-    s.close()
+    get_changes_from_server(dir_path)
+
 
 class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
@@ -268,7 +259,7 @@ def send_file(s , fileloc, file, client_id):
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((ip, port))
                 s.sendall(bytes_read)
-            s.close()
+                s.close()
 
 def on_created(event):
     print(f"created {event.src_path}")
