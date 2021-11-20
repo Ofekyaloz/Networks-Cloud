@@ -134,10 +134,7 @@ def send_all_files(path, first_time, last_visit, s):
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
-
     s.close()
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((ip, port))
 
 
 def create_folder(folder_path):
@@ -226,6 +223,7 @@ else:
 
 
 def ask_change(last_visit):
+    print("ask change")
     msg = (DELIMITER.join([ASK_CHANGED, str(last_visit)])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -284,7 +282,9 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 
 time.sleep(time_interval)
-msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True"])).encode(UTF)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((ip, port))
+msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
 msg_len = get_size(msg)
 s.send(msg_len)
 s.send(msg)
@@ -299,15 +299,12 @@ try:
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-
         print("send finish")
-
         s.close()
+        time.sleep(time_interval)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
-
-        time.sleep(time_interval)
-        msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True"])).encode(UTF)
+        msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False"])).encode(UTF)
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
