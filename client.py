@@ -35,6 +35,13 @@ SLEEP_INTERVAL = 2
 def get_client_id_folder(client_id):
     return client_id[:CLIENT_SHORT_ID_LENGTH]
 
+def send(s, msg):
+    try:
+        s.send(msg)
+    except:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+        s.send(msg)
 
 # function that checks validity of the parameters.
 def arguments_check():
@@ -95,8 +102,8 @@ if len(sys.argv) == MAXIMUM_ARGS_LENGTH:
     client_id = sys.argv[5]
 else:
     new_client = True
-    s.send(('8'.zfill(12)).encode(UTF))
-    s.send(REGISTER.encode(UTF))
+    send(s, ('8'.zfill(12)).encode(UTF))
+    send(s, REGISTER.encode(UTF))
     data = s.recv(132)
     print("Server sent: ", data)
     client_id = data.decode(UTF)
@@ -112,8 +119,8 @@ def send_all_files(path, first_time, last_visit):
                 msg = (DELIMITER.join([SEND_DIR, str(folder_loc)])).encode(UTF)
                 msg_len = get_size(msg)
                 if first_time or (last_visit - now <= 0):
-                    s.send(msg_len)
-                    s.send(msg)
+                    send(s, msg_len)
+                    send(s, msg)
 
         for file in files:
             fileloc = os.path.join(root, file)
@@ -123,8 +130,8 @@ def send_all_files(path, first_time, last_visit):
                 msg_len = get_size(msg)
                 now = os.path.getmtime(folder_loc)
                 if first_time or (last_visit - now <= 0):
-                    s.send(msg_len)
-                    s.send(msg)
+                    send(s, msg_len)
+                    send(s, msg)
                     while True:
                         # read the bytes from the file
                         bytes_read = f.read(BUFFER_SIZE)
@@ -134,8 +141,8 @@ def send_all_files(path, first_time, last_visit):
                         s.sendall(bytes_read)
     msg = FINISH.encode(UTF)
     msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send(s, msg_len)
+    send(s, msg)
 
 
 def create_folder(folder_path):
@@ -214,8 +221,8 @@ def get_changes_from_server(path):
 
 msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True"])).encode(UTF)
 msg_len = get_size(msg)
-s.send(msg_len)
-s.send(msg)
+send(s, msg_len)
+send(s, msg)
 last_visit = time.time()
 if new_client:
     send_all_files(dir_path, True, last_visit)
@@ -226,8 +233,8 @@ else:
 def ask_change(last_visit):
     msg = (DELIMITER.join([ASK_CHANGED, str(last_visit)])).encode(UTF)
     msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send(s, msg_len)
+    send(s, msg)
     get_changes_from_server(dir_path)
 
 
@@ -235,21 +242,20 @@ class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
         print(f'{e.event_type}, {e.src_path}')
 
-
 def on_created(event):
     print(f"created {event.src_path}")
     msg = (DELIMITER.join([SEND_DIR, str(event.src_path)])).encode(UTF)
     msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send(s, msg_len)
+    send(s, msg)
 
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
     msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path)])).encode(UTF)
     msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send(s, msg_len)
+    send(s, msg)
 
 
 def on_modified(event):
@@ -258,16 +264,16 @@ def on_modified(event):
     size = os.path.getsize(event.src_path)
     msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path)])).encode(UTF)
     msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send(s, msg_len)
+    send(s, msg)
 
 
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path)])).encode(UTF)
     msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
+    send(s, msg_len)
+    send(s, msg)
 
 
 handler = PatternMatchingEventHandler("*", None, False, True)
@@ -287,13 +293,11 @@ try:
         print("sleep")
         msg = "finish".encode('utf-8')
         msg_len = get_size(msg)
-        s.send(msg_len)
-        s.send(msg)
+        send(s, msg_len)
+        send(s, msg)
         print("send finish")
         s.close()
         time.sleep(time_interval)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip, port))
 
 except KeyboardInterrupt:
     observer.stop()
