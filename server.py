@@ -171,7 +171,7 @@ def add_changes(changes, client_id, computer_id, request, dictionary):
         changes[short_id] = {}
         changes[short_id][computer_id] = []
     for key, value in dictionary.items():
-        for computer_id, paths in value:
+        for computer_id, paths in value.items():
             if short_id in changes.keys():
                 if computer_id not in changes[short_id]:
                     changes[short_id][computer_id] = []
