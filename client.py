@@ -37,6 +37,8 @@ WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
 ID_LENGTH = 12
 EMPTY_STRING = ""
+global updates_set
+updates_set = set()
 
 
 def create_folder(folder_path):
@@ -268,8 +270,8 @@ class FileChangedHandler(FileSystemEventHandler):
         print(f'{e.event_type}, {e.src_path}')
 
 # send file
-def send_file(s , msg , client_id):
-    fileloc = msg.split("@@@")[3]
+def send_file(s , msg):
+    fileloc = msg.decode(UTF).split("@@@")[3]
     with open(fileloc, READ_BYTES) as f:
         #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
         while True:
@@ -343,7 +345,7 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 print("sleep")
 time.sleep(time_interval)
-updates_set = set()
+
 
 def send_watch(s, updates_set):
     print("send_watch")
@@ -352,7 +354,7 @@ def send_watch(s, updates_set):
         s.send(msg_len)
         s.send(msg)
         if (msg.decode(UTF)).startswith("send-file"):
-            send_file(s, msg, client_id)
+            send_file(s, msg)
         print("watch send: ", msg[:30])
     updates_set = set()
     return updates_set
