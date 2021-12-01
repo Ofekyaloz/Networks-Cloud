@@ -205,12 +205,12 @@ def order(changes_for_client):
 # it's important before the client gets files.
 def send_important_changes(dictionary, client_id, changes, my_last_update_time, connection, computer_id):
     client_folder = get_folder_by_id(dictionary, client_id, computer_id)
-    # { 'ABcdefg12356683', {'computerIdAecnkdjsj', 'ofek/noam/temp'} }
+    # { 'ABcdefg12356683': {'computerIdAecnkdjsj': 'ofek/noam/temp', 'computerIdAecnkdjsj': 'ofek/noam/temp'} }
 
     for client_id in changes.keys():
         # value = {'computerIdAecnkdjsj', ['ofek/noam/temp']}
         value = changes[client_id[:CLIENT_SHORT_ID_LENGTH]]
-        relevant_changes = changes[value]
+        relevant_changes = value[computer_id]
         relevant_changes = order(relevant_changes)
         for request, time_was_changed in relevant_changes:
             if time_was_changed - my_last_update_time > 16:
@@ -364,6 +364,10 @@ while True:
             client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
             #send_all_folder(client_id_folder, connection, True, my_last_update_time)
             #connection.close()
+            msg = FINISH.encode(UTF)
+            sum = get_size(msg)
+            connection.send(sum)
+            connection.send(msg)
             break
         elif command == SEND_DIR:
             computer_id = request_parts[3]
