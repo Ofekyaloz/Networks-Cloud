@@ -321,9 +321,7 @@ while True:
             client_folder = request_parts[2]
             is_first_hello = request_parts[3]
             computer_id = request_parts[4]
-            add_client_to_dictionary(dictionary, client_id)
-            dictionary[client_id_folder].append((
-                addr[0], client_folder))
+            add_client_to_dictionary(dictionary, client_id, computer_id, client_folder)
             create_folder(client_id_folder)
             # if it's the first hello, then clone
             # give the client all the changes it needs.
