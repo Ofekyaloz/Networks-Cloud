@@ -166,9 +166,15 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
 # with the same id will come the server will tell him
 # to update itself as it should.
 def add_changes(changes, client_id, computer_id, request, dictionary):
+    short_id = client_id[:CLIENT_SHORT_ID_LENGTH]
     if client_id not in changes:
-        changes[client_id[:CLIENT_SHORT_ID_LENGTH]] = {}
-        changes[client_id[:CLIENT_SHORT_ID_LENGTH]][computer_id] = []
+        changes[short_id] = {}
+        changes[short_id][computer_id] = []
+    for key, value in dictionary.items():
+        for computer_id, paths in value:
+            if short_id in changes.keys():
+                if computer_id not in changes[short_id]:
+                    changes[short_id][computer_id] = []
 
     # value = { "computerId", ["SEND-DIR"] }
     for key, value in changes.items():
