@@ -171,7 +171,7 @@ def add_changes(changes, client_id, computer_id, request, dictionary):
         changes[client_id[:CLIENT_SHORT_ID_LENGTH]][computer_id] = []
 
     # value = { "computerId", "SEND-DIR" }
-    for key, value in changes:
+    for key, value in changes.items():
         other_computer_id = value.key()
         if other_computer_id != computer_id:
             request = request.replace(get_folder_by_id(dictionary, client_id, computer_id),
