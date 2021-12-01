@@ -345,7 +345,6 @@ while True:
             file_size = int(request_parts[2])
             file_path = request_parts[3]
             client_id = request_parts[4]
-            client_id = get_id_by_addr(dictionary, addr[0])
             client_folder = get_folder_by_id(dictionary, client_id)
             file_path = file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
             folder = file_path.replace(file_name, EMPTY_STRING)
