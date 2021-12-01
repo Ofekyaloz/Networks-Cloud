@@ -196,7 +196,7 @@ def send_important_folder_changes(dictionary, client_id, changes, my_last_update
         for request, time_was_changed in relevant_changes:
             if time_was_changed - my_last_update_time > 16:
                 connection.send(request.encode())
-
+    changes[client_id][computer_id] = []
 
 client_id = EMPTY_STRING
 while True:
