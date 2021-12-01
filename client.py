@@ -262,7 +262,6 @@ def on_created(event):
         msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isdir(event.src_path):
         msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id), computer_id])).encode(UTF)
-        #send_watch(s, msg)
     else:
         return
     print(msg[:30])
@@ -275,7 +274,6 @@ def on_deleted(event):
         msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id), computer_id])).encode(UTF)
     else:
         msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id), computer_id])).encode(UTF)
-    #send_watch(s, msg)
     print(msg[:30])
     updates_set.add(msg)
 
@@ -305,7 +303,6 @@ def on_moved(event):
         msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     else:
         return
-    #send_watch(s, msg)
     print(msg[:30])
     updates_set.add(msg)
 
@@ -346,6 +343,7 @@ try:
         # observer.start()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
+        print(updates_set)
         updates_set = send_watch(s, updates_set)
         print("sleep")
         msg = FINISH.encode(UTF)
