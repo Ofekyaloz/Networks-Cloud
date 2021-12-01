@@ -79,7 +79,7 @@ def arguments_check():
             return INVALID
         i += 1
 
-
+# return the size of a message, 12 chars
 def get_size(msg):
     sum = 0
     for i in msg:
@@ -98,6 +98,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
 new_client = False
 
+# if the client has id save it, else ask new id from the server
 if len(sys.argv) == MAXIMUM_ARGS_LENGTH:
     client_id = sys.argv[5]
 else:
@@ -109,12 +110,12 @@ else:
     client_id = data.decode(UTF)
 
 
+# send all the files from a specific path
 def send_all_files(path, s):
     # root = paths, dirs = folders, files
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
-            now = os.path.getmtime(folder_loc)
             if not (os.listdir(folder_loc)):
                 msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id)])).encode(UTF)
                 msg_len = get_size(msg)
@@ -143,6 +144,7 @@ def send_all_files(path, s):
     s.close()
 
 
+# receive changes from the server
 def get_changes_from_server(path):
     while True:
         request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
@@ -157,29 +159,17 @@ def get_changes_from_server(path):
         command = request_parts[0]
         # the server says that a folder was moved.
         if command == "alert-moved-folder":
-            # /home/noam
-            client_folder = dir_path
-            # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            # Acdbhd1348/temp/home/noam
             old_folder_path = request_parts[1]
-            # /ofek/temp/home/noam
             old_folder_path = old_folder_path.replace(client_dir, dir_path)
-            # Acdbhd1348/temp/home/example
             new_folder_path = request_parts[2]
-            # /ofek/temp/home/example
             old_folder_path = old_folder_path.replace(client_dir, dir_path)
             os.rename(old_folder_path, new_folder_path)
         elif command == ALERT_DELETED_FOLDER:
-            # /home/noam
-            client_folder = dir_path
-            # Abcdd237842/example
             path_in_client = request_parts[1]
-            # Abcdd237842
             client_dir = get_client_id_folder(client_id)
-            # /ofek/main/home/noam
             path_to_delete = path_in_client.replace(client_dir, dir_path)
-            # the server delete the folder in its side.
+            # the client delete the folder in its side.
             for root, folders, files in os.walk(path_to_delete, topdown=False):
                 for name_of_file in files:
                     os.remove(os.path.join(root, name_of_file))
@@ -220,7 +210,7 @@ if new_client:
 else:
     get_changes_from_server(dir_path)
 
-
+# ask changes from the server
 def ask_change(last_visit):
     print("ask change")
     msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id)])).encode(UTF)
@@ -308,6 +298,7 @@ def on_moved(event):
     #send_watch(s, msg)
     updates_set.add(msg)
 
+
 handler = PatternMatchingEventHandler("*", None, False, True)
 handler.on_created = on_created
 handler.on_deleted = on_deleted
@@ -319,7 +310,6 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 print("sleep")
 time.sleep(time_interval)
-
 updates_set = set()
 
 def send_watch(s, updates_set):
@@ -336,8 +326,10 @@ try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
         print("awake")
+        observer.stop()
         ask_change(last_visit)
         last_visit = time.time()
+        observer.start()
         send_watch(s, updates_set)
         print("sleep")
         s.close()
