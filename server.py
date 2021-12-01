@@ -218,7 +218,7 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
 
     key = client_id[:CLIENT_SHORT_ID_LENGTH]
     if key in changes.keys():
-        if computer_id in key.keys():
+        if computer_id in changes[key].keys():
             changes[key][computer_id] = []
 
 client_id = EMPTY_STRING
@@ -333,7 +333,7 @@ while True:
                     for name_of_file in folders:
                         os.rmdir(os.path.join(root, name_of_file))
             os.rmdir(os.path.abspath(path_to_delete))
-            add_changes(changes, client_id, client_id, request, dictionary)
+            add_changes(changes, client_id, computer_id, request, dictionary)
             #connection.close()
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
