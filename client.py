@@ -1,4 +1,7 @@
 import socket, sys, os, time
+import string
+import random
+
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler, FileSystemEventHandler
 
@@ -32,6 +35,8 @@ SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
 WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
+ID_LENGTH = 12
+EMPTY_STRING = ""
 
 
 def create_folder(folder_path):
@@ -111,22 +116,21 @@ else:
 
 
 # send all the files from a specific path
-def send_all_files(path, s):
+def send_all_files(path, computer_id, s):
     # root = paths, dirs = folders, files
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
-            if not (os.listdir(folder_loc)):
-                msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id)])).encode(UTF)
-                msg_len = get_size(msg)
-                s.send(msg_len)
-                s.send(msg)
+            msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id), computer_id])).encode(UTF)
+            msg_len = get_size(msg)
+            s.send(msg_len)
+            s.send(msg)
 
         for file in files:
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
                 size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id)])).encode(UTF)
+                msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
@@ -199,21 +203,22 @@ def get_changes_from_server(path):
             break
         time.sleep(SLEEP_INTERVAL)
 
-
-msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True"])).encode(UTF)
+computer_id = EMPTY_STRING.join(
+                random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in range(ID_LENGTH))
+msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True", computer_id])).encode(UTF)
 msg_len = get_size(msg)
 s.send(msg_len)
 s.send(msg)
 last_visit = time.time()
 if new_client:
-    send_all_files(dir_path, s)
+    send_all_files(dir_path, computer_id, s)
 else:
     get_changes_from_server(dir_path)
 
 # ask changes from the server
 def ask_change(last_visit):
     print("ask change")
-    msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id)])).encode(UTF)
+    msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id), computer_id])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -228,10 +233,10 @@ class FileChangedHandler(FileSystemEventHandler):
 def send_file(s , fileloc, file, client_id):
     with open(fileloc, READ_BYTES) as f:
         size = os.path.getsize(fileloc)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
         msg_len = get_size(msg)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((ip, port))
+        # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # s.connect((ip, port))
         s.send(msg_len)
         s.send(msg)
         while True:
@@ -240,13 +245,13 @@ def send_file(s , fileloc, file, client_id):
             if not bytes_read:
                 # file transmitting is done
                 break
-            try:
-                s.sendall(bytes_read)
-            except:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((ip, port))
-                s.sendall(bytes_read)
-                s.close()
+            # try:
+            s.sendall(bytes_read)
+            # except:
+            #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #     s.connect((ip, port))
+            #     s.sendall(bytes_read)
+            #     s.close()
 
 def on_created(event):
     print(f"created {event.src_path}")
@@ -254,19 +259,24 @@ def on_created(event):
         file = os.path.basename(event.src_path)
         #send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isdir(event.src_path):
-        msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([SEND_DIR, str(event.src_path), str(client_id), computer_id])).encode(UTF)
         #send_watch(s, msg)
     else:
         return
+    print(msg[:30])
     updates_set.add(msg)
 
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
-    msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id)])).encode(UTF)
+    if event.is_directory:
+        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id), computer_id])).encode(UTF)
+    else:
+        msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id), computer_id])).encode(UTF)
     #send_watch(s, msg)
+    print(msg[:30])
     updates_set.add(msg)
 
 
@@ -283,19 +293,20 @@ def on_deleted(event):
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     if event.is_directory: # ??
-        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     elif (".goutputstream") in str(event.src_path):
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
         #send_file(s, event.dest_path, file, client_id)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isfile(event.dest_path):
-        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isdir(event.dest_path):
-        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id)])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     else:
         return
     #send_watch(s, msg)
+    print(msg[:30])
     updates_set.add(msg)
 
 
@@ -318,20 +329,29 @@ def send_watch(s, updates_set):
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-    print("message len: ", msg_len)
-    print("sent event: ", msg)
+        print("watch send: ", msg[:30])
+    updates_set = set()
+    return updates_set
 
 try:
     while True:
+        print("awake")
+        #observer.stop()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
-        print("awake")
-        observer.stop()
         ask_change(last_visit)
         last_visit = time.time()
-        observer.start()
-        send_watch(s, updates_set)
+        # observer = Observer()
+        # observer.schedule(handler, path=dir_path, recursive=True)
+        # observer.start()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((ip, port))
+        updates_set = send_watch(s, updates_set)
         print("sleep")
+        msg = FINISH.encode(UTF)
+        msg_len = get_size(msg)
+        s.send(msg_len)
+        s.send(msg)
         s.close()
         time.sleep(time_interval)
 
