@@ -44,7 +44,7 @@ SEND_FILE = "send-file"
 # gets id of client, and dictioanry that maps
 # between id to folder, and returns the dir path
 # of the folder. for example, /home/Ofek1.
-def get_folder_by_id(dictionary, client_id, computer_id):
+def get_folder_by_id(dictionary, id, computer_id):
     # the dictionary is for example:
     # { 'ABcdefg12356683', {'computerIdAecnkdjsj', 'ofek/noam/temp'} }
     for client_id, value in dictionary.items():
@@ -167,8 +167,8 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
 # to update itself as it should.
 def add_changes(changes, client_id, computer_id, request, dictionary):
     if client_id not in changes:
-        changes[client_id] = {}
-        changes[client_id][computer_id] = []
+        changes[client_id[:CLIENT_SHORT_ID_LENGTH]] = {}
+        changes[client_id[:CLIENT_SHORT_ID_LENGTH]][computer_id] = []
 
     # value = { "computerId", "SEND-DIR" }
     for key, value in changes:
@@ -176,7 +176,7 @@ def add_changes(changes, client_id, computer_id, request, dictionary):
         if other_computer_id != computer_id:
             request = request.replace(get_folder_by_id(dictionary, client_id, computer_id),
                                       get_folder_by_id(dictionary, client_id, other_computer_id))
-            changes[client_id][other_computer_id].append((request, time.time()))
+            changes[client_id[:CLIENT_SHORT_ID_LENGTH]][other_computer_id].append((request, time.time()))
 
 # the key is client_id+client_folder and the value is the list
 # of changes that the client should make in order to be
@@ -191,12 +191,16 @@ def send_important_folder_changes(dictionary, client_id, changes, my_last_update
 
     for client_id in changes.keys():
         # value = {'computerIdAecnkdjsj', ['ofek/noam/temp']}
-        value = changes[client_id]
+        value = changes[client_id[:CLIENT_SHORT_ID_LENGTH]]
         relevant_changes = changes[value]
         for request, time_was_changed in relevant_changes:
             if time_was_changed - my_last_update_time > 16:
                 connection.send(request.encode())
-    changes[client_id][computer_id] = []
+
+    key = client_id[:CLIENT_SHORT_ID_LENGTH]
+    if key in changes.keys():
+        if computer_id in key.keys():
+            changes[key][computer_id] = []
 
 client_id = EMPTY_STRING
 while True:
@@ -347,7 +351,7 @@ while True:
             folder_path = request_parts[1]
             client_id = request_parts[2]
             client_folder = get_folder_by_id(dictionary, client_id, computer_id)
-            folder_path = folder_path.replace(client_folder, client_id)
+            folder_path = folder_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
             # the server creates directory as the client told him.
             create_folder(folder_path)
             #connection.close()
