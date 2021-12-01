@@ -309,7 +309,8 @@ while True:
                         os.remove(os.path.join(root, name_of_file))
                     for name_of_file in folders:
                         os.rmdir(os.path.join(root, name_of_file))
-                add_changes(changes, client_id + client_id, request)
+            os.rmdir(os.path.abspath(path_to_delete))
+            add_changes(changes, client_id + client_id, request)
             #connection.close()
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
