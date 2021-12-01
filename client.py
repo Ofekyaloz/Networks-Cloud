@@ -163,12 +163,40 @@ def get_changes_from_server(path):
         command = request_parts[0]
         # the server says that a folder was moved.
         if command == "alert-moved-folder":
+            # cdshdbcsjjcbhdsbhjcsbhjcdsbjhcbhjsdbhjhbds\ofek\do
+            # mycomputer\ofek\do
             client_dir = get_client_id_folder(client_id)
             old_folder_path = request_parts[1]
             old_folder_path = old_folder_path.replace(client_dir, dir_path)
             new_folder_path = request_parts[2]
-            old_folder_path = old_folder_path.replace(client_dir, dir_path)
+            new_folder_path = new_folder_path.replace(client_dir, dir_path)
             os.rename(old_folder_path, new_folder_path)
+
+        elif command == ALERT_DELETED_FILE:
+            client_dir = get_client_id_folder(client_id)
+            # /home/noam/example
+            path_in_file = request_parts[1]
+            # Acdbhd1348/home/noam
+            path_to_delete = path_in_file.replace(client_dir, dir_path)
+            try:
+            # the server delete the folder in its side.
+                os.remove(path_to_delete)
+            except Exception as e:
+                print(e)
+
+        elif command == "alert-moved-file":
+            client_dir = get_client_id_folder(client_id)
+            # /home/noam
+            old_file_path = request_parts[1]
+            # Acdbhd1348/home/noam
+            old_file_path = old_file_path.replace(client_dir, dir_path)
+            new_file_path = request_parts[2]
+            # Acdbhd1348/home/example
+            new_file_path = new_file_path.replace(client_dir, dir_path)
+            try:
+                os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
+            except:
+                pass
         elif command == ALERT_DELETED_FOLDER:
             path_in_client = request_parts[1]
             client_dir = get_client_id_folder(client_id)
@@ -179,6 +207,7 @@ def get_changes_from_server(path):
                     os.remove(os.path.join(root, name_of_file))
                 for name_of_file in folders:
                     os.rmdir(os.path.join(root, name_of_file))
+            os.rmdir(os.path.abspath(path_to_delete))
         if command == SEND_DIR:
             folder_path = request_parts[1]
             folder_path = folder_path.replace(client_id[0:MESSAGE_SIZE_HEADER_LENGTH], path)
