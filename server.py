@@ -189,10 +189,21 @@ def add_changes(changes, client_id, computer_id, request, dictionary):
 # of changes that the client should make in order to be
 # up to date.
 
+def order(changes_for_client):
+    lst = []
+    for change in changes_for_client:
+        if change.startswith(SEND_DIR):
+            lst.append(change)
+
+    for change in changes_for_client:
+        if not change.startswith(SEND_DIR):
+            lst.append(change)
+    return lst
+
 # the server sends to the client
 # important changes such as deletion and moving folders.
 # it's important before the client gets files.
-def send_important_folder_changes(dictionary, client_id, changes, my_last_update_time, connection, computer_id):
+def send_important_changes(dictionary, client_id, changes, my_last_update_time, connection, computer_id):
     client_folder = get_folder_by_id(dictionary, client_id, computer_id)
     # { 'ABcdefg12356683', {'computerIdAecnkdjsj', 'ofek/noam/temp'} }
 
@@ -200,6 +211,7 @@ def send_important_folder_changes(dictionary, client_id, changes, my_last_update
         # value = {'computerIdAecnkdjsj', ['ofek/noam/temp']}
         value = changes[client_id[:CLIENT_SHORT_ID_LENGTH]]
         relevant_changes = changes[value]
+        relevant_changes = order(relevant_changes)
         for request, time_was_changed in relevant_changes:
             if time_was_changed - my_last_update_time > 16:
                 connection.send(request.encode())
@@ -347,10 +359,10 @@ while True:
             client_id = request_parts[2]
             my_last_update_time = float(request_parts[1])
             # the server tell the client about moving folders.
-            send_important_folder_changes(dictionary, client_id, changes, my_last_update_time, connection, computer_id)
+            send_important_changes(dictionary, client_id, changes, my_last_update_time, connection, computer_id)
             # the server sends the file to the client.
             client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
-            send_all_folder(client_id_folder, connection, True, my_last_update_time)
+            #send_all_folder(client_id_folder, connection, True, my_last_update_time)
             #connection.close()
             break
         elif command == SEND_DIR:
