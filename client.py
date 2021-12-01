@@ -145,7 +145,7 @@ def send_all_files(path, computer_id, s):
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
-    s.close()
+    #s.close()
 
 
 # receive changes from the server
@@ -228,20 +228,29 @@ def get_changes_from_server(path):
 
         elif command == FINISH:
             print("Finished")
-            s.close()
+            msg = FINISH.encode(UTF)
+            msg_len = get_size(msg)
+            s.send(msg_len)
+            s.send(msg)
+        #    s.close()
             break
         time.sleep(SLEEP_INTERVAL)
 
 computer_id = EMPTY_STRING.join(
                 random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in range(ID_LENGTH))
-msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True", computer_id])).encode(UTF)
-msg_len = get_size(msg)
-s.send(msg_len)
-s.send(msg)
+print("computer id: ", computer_id)
 last_visit = time.time()
 if new_client:
+    msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False", computer_id])).encode(UTF)
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    s.send(msg)
     send_all_files(dir_path, computer_id, s)
 else:
+    msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True", computer_id])).encode(UTF)
+    msg_len = get_size(msg)
+    s.send(msg_len)
+    s.send(msg)
     get_changes_from_server(dir_path)
 
 # ask changes from the server
@@ -342,7 +351,7 @@ def send_watch(s, updates_set):
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-        if (msg.decode(UTF)).startwith("send-file"):
+        if (msg.decode(UTF)).startswith("send-file"):
             send_file(s, msg, client_id)
         print("watch send: ", msg[:30])
     updates_set = set()
@@ -368,7 +377,7 @@ try:
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-        s.close()
+        #s.close()
         time.sleep(time_interval)
 
 
