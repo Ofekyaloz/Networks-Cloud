@@ -259,28 +259,17 @@ class FileChangedHandler(FileSystemEventHandler):
         print(f'{e.event_type}, {e.src_path}')
 
 # send file
-def send_file(s , fileloc, file, client_id):
+def send_file(s , msg , client_id):
+    fileloc = msg.split("@@@")[3]
     with open(fileloc, READ_BYTES) as f:
-        size = os.path.getsize(fileloc)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-        msg_len = get_size(msg)
-        # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # s.connect((ip, port))
-        s.send(msg_len)
-        s.send(msg)
+        #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
         while True:
             # read the bytes from the file
             bytes_read = f.read(BUFFER_SIZE)
             if not bytes_read:
                 # file transmitting is done
                 break
-            # try:
             s.sendall(bytes_read)
-            # except:
-            #     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            #     s.connect((ip, port))
-            #     s.sendall(bytes_read)
-            #     s.close()
 
 def on_created(event):
     print(f"created {event.src_path}")
@@ -319,7 +308,7 @@ def on_deleted(event):
 # add move alert-moved-folder
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
-    if event.is_directory: # ??
+    if event.is_directory:
         msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     elif (".goutputstream") in str(event.src_path):
         size = os.path.getsize(event.dest_path)
@@ -328,8 +317,6 @@ def on_moved(event):
         msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isfile(event.dest_path):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
-    elif os.path.isdir(event.dest_path):
-        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     else:
         return
     print(msg[:30])
@@ -355,6 +342,8 @@ def send_watch(s, updates_set):
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
+        if (msg.decode(UTF)).startwith("send-file"):
+            send_file(s, msg, client_id)
         print("watch send: ", msg[:30])
     updates_set = set()
     return updates_set
