@@ -216,7 +216,8 @@ while True:
             #raise e
             length_of_packet = BUFFER_SIZE
         request = connection.recv(length_of_packet).decode(UTF, IGNORE)
-        print(request)
+        if request != "":
+            print(request)
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
         # if it's the first time of the client, then it gets ID.
@@ -230,9 +231,10 @@ while True:
         # if the client tells about moving folder, the server keeps it
         # and will update other connections with the same client_id.
         elif command == ALERT_MOVED_FOLDER:
+            computer_id = request_parts[4]
             client_id = request_parts[3]
             client_folder = get_folder_by_id(dictionary, client_id)
-            add_changes(changes, client_id + client_folder, request)
+            add_changes(changes, client_id + computer_id, request)
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
             # Acdbhd1348
@@ -243,28 +245,33 @@ while True:
             new_folder_path = request_parts[2]
             # Acdbhd1348/home/example
             new_folder_path = new_folder_path.replace(client_folder, client_dir)
-            os.rename(old_folder_path, new_folder_path)
+            os.rename(os.path.abspath(old_folder_path), os.path.abspath(new_folder_path))
             #connection.close()
         elif command == "alert-moved-file":
+            computer_id = request_parts[4]
             client_id = request_parts[3]
             client_folder = get_folder_by_id(dictionary, client_id)
-            add_changes(changes, client_id + client_folder, request)
+            add_changes(changes, client_id + computer_id, request)
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
             old_file_path = request_parts[1]
             # Acdbhd1348/home/noam
-            old_file_path = old_folder_path.replace(client_folder, client_dir)
+            old_file_path = old_file_path.replace(client_folder, client_dir)
             new_file_path = request_parts[2]
             # Acdbhd1348/home/example
             new_file_path = new_file_path.replace(client_folder, client_dir)
-            os.rename(old_file_path, new_file_path)
+            try:
+                os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
+            except:
+                pass
             #connection.close()
         # if the client tells the server about deleting a folder
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
         elif command == "alert-deleted-file":
+            computer_id = request_parts[3]
             client_id = request_parts[2]
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
@@ -276,9 +283,10 @@ while True:
             path_to_delete = path_in_file.replace(client_folder, client_dir)
             # the server delete the folder in its side.
             os.remove(path_to_delete)
-            add_changes(changes, client_id + client_folder, request)
+            add_changes(changes, client_id + computer_id, request)
             #connection.close()
         elif command == ALERT_DELETED_FOLDER:
+            computer_id = request_parts[3]
             client_id = request_parts[2]
             # /home/noam
             client_folder = get_folder_by_id(dictionary, client_id)
@@ -288,18 +296,20 @@ while True:
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
             path_to_delete = path_in_client.replace(client_folder, client_dir)
+            should_do_for_recursive = True
             if (os.path.isfile(path_to_delete)):
                 os.remove(path_to_delete)
                 request.replace("folder", "file")
-                add_changes(changes, client_id + client_folder, request)
-                break
+                add_changes(changes, client_id + client_id, request)
+                should_do_for_recursive = False
+            if should_do_for_recursive:
             # the server delete the folder in its side.
-            for root, folders, files in os.walk(path_to_delete, topdown=False):
-                for name_of_file in files:
-                    os.remove(os.path.join(root, name_of_file))
-                for name_of_file in folders:
-                    os.rmdir(os.path.join(root, name_of_file))
-            add_changes(changes, client_id + client_folder, request)
+                for root, folders, files in os.walk(path_to_delete, topdown=False):
+                    for name_of_file in files:
+                        os.remove(os.path.join(root, name_of_file))
+                    for name_of_file in folders:
+                        os.rmdir(os.path.join(root, name_of_file))
+                add_changes(changes, client_id + client_id, request)
             #connection.close()
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
@@ -309,6 +319,7 @@ while True:
             client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
             client_folder = request_parts[2]
             is_first_hello = request_parts[3]
+            computer_id = request_parts[4]
             add_client_to_dictionary(dictionary, client_id)
             dictionary[client_id_folder].append((
                 addr[0], client_folder))
@@ -321,15 +332,18 @@ while True:
             #connection.close()
         # the client asks the server if there was a change.
         elif command == ASK_CHANGED:
+            computer_id = request_parts[3]
             client_id = request_parts[2]
             my_last_update_time = float(request_parts[1])
             # the server tell the client about moving folders.
             send_important_folder_changes(dictionary, client_id, changes, my_last_update_time, connection)
             # the server sends the file to the client.
+            client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
             send_all_folder(client_id_folder, connection, True, my_last_update_time)
             #connection.close()
             break
         elif command == SEND_DIR:
+            computer_id = request_parts[3]
             folder_path = request_parts[1]
             client_id = request_parts[2]
             client_id = get_id_by_addr(dictionary, addr[0])
@@ -338,13 +352,13 @@ while True:
             # the server creates directory as the client told him.
             create_folder(folder_path)
             #connection.close()
-            break
         elif command == SEND_FILE:
             # the server receives a file from the client.
             file_name = request_parts[1]
             file_size = int(request_parts[2])
             file_path = request_parts[3]
             client_id = request_parts[4]
+            computer_id = request_parts[5]
             client_folder = get_folder_by_id(dictionary, client_id)
             file_path = file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
             folder = file_path.replace(file_name, EMPTY_STRING)
@@ -355,9 +369,8 @@ while True:
             f.write(data)
             f.close()
             #connection.close()
-            break
         elif command == FINISH:
-            #connection.close()
+            connection.close()
             print("Finished and went to wait to other clients.")
             break
         time.sleep(SLEEP_INTERVAL)
