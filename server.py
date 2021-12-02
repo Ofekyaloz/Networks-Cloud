@@ -204,14 +204,15 @@ def order(changes_for_client):
             lst.append(change)
     return lst
 
-def delete_change_by_request(changes, request):
+def delete_change_by_request(changes, client_id, computer_id, request):
     to_delete = None
-    for change in changes:
+    dict_computer = changes[client_id][computer_id]
+    for change in dict_computer:
         req = change[0]
         if req == request:
             to_delete = change
     if to_delete is not None:
-        changes.remove(to_delete)
+        changes[client_id][computer_id].remove(to_delete)
 
 # the server sends to the client
 # important changes such as deletion and moving folders.
@@ -240,7 +241,7 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
             # changes = { 'Client_id' : 'Cmp_Id1': [(ALERT, 1234), (ALERT, 1234)] }
             # [(ALERT, 1234)]
             for req in updated:
-                delete_change_by_request(changes, req)
+                delete_change_by_request(changes, short_id, computer_id, req)
 
 client_id = EMPTY_STRING
 while True:
