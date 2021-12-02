@@ -48,7 +48,7 @@ def get_folder_by_id(dictionary, id, computer_id):
     # the dictionary is for example:
     # { 'ABcdefg12356683', {'computerIdAecnkdjsj', 'ofek/noam/temp'} }
     for client_id, value in dictionary.items():
-        if id[:15] == client_id:
+        if id[:15] == client_id and computer_id in value.keys():
             return value[computer_id]
     return EMPTY_FOLDER
 
@@ -222,7 +222,7 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
     # { 'ABcdefg12356683': {'computerIdAecnkdjsj': 'ofek/noam/temp', 'computerIdAecnkdjsj': 'ofek/noam/temp'} }
 
     short_id = client_id[:CLIENT_SHORT_ID_LENGTH]
-    for client_id in changes.keys():
+    for short_id in changes.keys():
         # value = {'computerIdAecnkdjsj', ['ofek/noam/temp']}
         value = changes[short_id]
         if computer_id not in changes[short_id]:
@@ -231,6 +231,7 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
         #relevant_changes = order(relevant_changes)
         updated = []
         for request, time_was_changed in relevant_changes:
+            connection.send(get_size(request.encode()))
             connection.send(request.encode())
             updated.append(request)
 
@@ -330,7 +331,10 @@ while True:
             # Acdbhd1348/home/noam
             path_to_delete = path_in_file.replace(client_folder, client_dir)
             # the server delete the folder in its side.
-            os.remove(path_to_delete)
+            try:
+                os.remove(path_to_delete)
+            except:
+                pass
             add_changes(changes, client_id, computer_id, request, dictionary)
             #connection.close()
         elif command == ALERT_DELETED_FOLDER:
@@ -357,7 +361,10 @@ while True:
                         os.remove(os.path.join(root, name_of_file))
                     for name_of_file in folders:
                         os.rmdir(os.path.join(root, name_of_file))
-            os.rmdir(os.path.abspath(path_to_delete))
+            try:
+                os.rmdir(os.path.abspath(path_to_delete))
+            except:
+                pass
             add_changes(changes, client_id, computer_id, request, dictionary)
             #connection.close()
         # hello is send every time the client starts connection with the server.
