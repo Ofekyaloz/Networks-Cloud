@@ -147,7 +147,7 @@ def send_all_files(path, computer_id, s):
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
-    #s.close()
+    s.close()
 
 
 # receive changes from the server
@@ -163,8 +163,9 @@ def get_changes_from_server(path):
 
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
+        print(command)
         # the server says that a folder was moved.
-        if command == "alert-moved-folder":
+        if command == ALERT_MOVED_FOLDER:
             # cdshdbcsjjcbhdsbhjcsbhjcdsbjhcbhjsdbhjhbds\ofek\do
             # mycomputer\ofek\do
             client_dir = get_client_id_folder(client_id)
@@ -186,7 +187,7 @@ def get_changes_from_server(path):
             except Exception as e:
                 print(e)
 
-        elif command == "alert-moved-file":
+        elif command == ALERT_MOVED_FILE:
             client_dir = get_client_id_folder(client_id)
             # /home/noam
             old_file_path = request_parts[1]
@@ -234,7 +235,7 @@ def get_changes_from_server(path):
             msg_len = get_size(msg)
             s.send(msg_len)
             s.send(msg)
-        #    s.close()
+            s.close()
             break
         time.sleep(SLEEP_INTERVAL)
 
@@ -379,7 +380,7 @@ try:
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-        #s.close()
+        s.close()
         time.sleep(time_interval)
 
 
