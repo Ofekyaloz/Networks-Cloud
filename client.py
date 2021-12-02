@@ -26,6 +26,7 @@ REGISTER = "register"
 HELLO = "hello"
 SEND_DIR = "send-dir"
 FINISH = "finish"
+EMPTY_FOLDER = "empty_folder"
 ALERT_DELETED_FOLDER = "alert-deleted-folder"
 ALERT_MOVED_FOLDER = "alert-moved-folder"
 ALERT_DELETED_FILE = "alert-deleted-file"
@@ -163,17 +164,31 @@ def get_changes_from_server(path):
 
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
+        if path.endswith(os.sep):
+            path = path[:len(path) - 1]
+        if EMPTY_FOLDER in request:
+            request = request.replace(EMPTY_FOLDER, path)
         print(command)
         # the server says that a folder was moved.
         if command == ALERT_MOVED_FOLDER:
-            # cdshdbcsjjcbhdsbhjcsbhjcdsbjhcbhjsdbhjhbds\ofek\do
-            # mycomputer\ofek\do
             client_dir = get_client_id_folder(client_id)
             old_folder_path = request_parts[1]
             old_folder_path = old_folder_path.replace(client_dir, dir_path)
             new_folder_path = request_parts[2]
             new_folder_path = new_folder_path.replace(client_dir, dir_path)
-            os.rename(old_folder_path, new_folder_path)
+            try:
+                os.rename(old_folder_path, new_folder_path)
+            except:
+                create_folder(new_folder_path)
+            for root, folders, files in os.walk(old_folder_path, topdown=False):
+                for name_of_file in files:
+                    os.remove(os.path.join(root, name_of_file))
+                for name_of_folder in folders:
+                    os.rmdir(os.path.join(root, name_of_folder))
+            try:
+                os.rmdir(os.path.abspath(old_folder_path))
+            except:
+                pass
 
         elif command == ALERT_DELETED_FILE:
             client_dir = get_client_id_folder(client_id)
@@ -206,10 +221,10 @@ def get_changes_from_server(path):
             path_to_delete = path_in_client.replace(client_dir, dir_path)
             # the client delete the folder in its side.
             for root, folders, files in os.walk(path_to_delete, topdown=False):
-                for name_of_file in files:
-                    os.remove(os.path.join(root, name_of_file))
-                for name_of_file in folders:
-                    os.rmdir(os.path.join(root, name_of_file))
+                for name_of_folder in files:
+                    os.remove(os.path.join(root, name_of_folder))
+                for name_of_folder in folders:
+                    os.rmdir(os.path.join(root, name_of_folder))
             os.rmdir(os.path.abspath(path_to_delete))
         if command == SEND_DIR:
             folder_path = request_parts[1]
