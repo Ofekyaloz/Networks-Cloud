@@ -167,14 +167,16 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
 # to update itself as it should.
 def add_changes(changes, client_id, computer_id, request, dictionary):
     short_id = client_id[:CLIENT_SHORT_ID_LENGTH]
-    if client_id not in changes:
+    if short_id not in changes.keys():
         changes[short_id] = {}
         changes[short_id][computer_id] = []
+    # key = ID(15 digits),
+    # value {'acdd7831hhd': { 'acnakjcds' : "C:\" , "cdakjds": "C:\Example" } }
+
     for key, value in dictionary.items():
-        for computer_id, paths in value.items():
-            if short_id in changes.keys():
-                if computer_id not in changes[short_id]:
-                    changes[short_id][computer_id] = []
+        for id, path in value.items():
+                if id not in changes[short_id]:
+                    changes[short_id][id] = []
 
     # value = { "computerId", ["SEND-DIR"] }
     for key, value in changes.items():
@@ -192,13 +194,24 @@ def add_changes(changes, client_id, computer_id, request, dictionary):
 def order(changes_for_client):
     lst = []
     for change in changes_for_client:
-        if change.startswith(SEND_DIR):
+        request = change[0]
+        if request.startswith(SEND_DIR):
             lst.append(change)
 
     for change in changes_for_client:
-        if not change.startswith(SEND_DIR):
+        request = change[0]
+        if not request.startswith(SEND_DIR):
             lst.append(change)
     return lst
+
+def delete_change_by_request(changes, request):
+    to_delete = None
+    for change in changes:
+        req = change[0]
+        if req == request:
+            to_delete = change
+    if to_delete is not None:
+        changes.remove(to_delete)
 
 # the server sends to the client
 # important changes such as deletion and moving folders.
@@ -207,19 +220,27 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
     client_folder = get_folder_by_id(dictionary, client_id, computer_id)
     # { 'ABcdefg12356683': {'computerIdAecnkdjsj': 'ofek/noam/temp', 'computerIdAecnkdjsj': 'ofek/noam/temp'} }
 
+    short_id = client_id[:CLIENT_SHORT_ID_LENGTH]
     for client_id in changes.keys():
         # value = {'computerIdAecnkdjsj', ['ofek/noam/temp']}
-        value = changes[client_id[:CLIENT_SHORT_ID_LENGTH]]
+        value = changes[short_id]
+        if computer_id not in changes[short_id]:
+            changes[short_id][computer_id] = []
         relevant_changes = value[computer_id]
-        relevant_changes = order(relevant_changes)
+        #relevant_changes = order(relevant_changes)
+        updated = []
         for request, time_was_changed in relevant_changes:
-            if time_was_changed - my_last_update_time > 16:
-                connection.send(request.encode())
+            connection.send(request.encode())
+            updated.append(request)
 
     key = client_id[:CLIENT_SHORT_ID_LENGTH]
+
     if key in changes.keys():
-        if computer_id in key.keys():
-            changes[key][computer_id] = []
+        if computer_id in changes[key].keys():
+            # changes = { 'Client_id' : 'Cmp_Id1': [(ALERT, 1234), (ALERT, 1234)] }
+            # [(ALERT, 1234)]
+            for req in updated:
+                delete_change_by_request(changes, req)
 
 client_id = EMPTY_STRING
 while True:
@@ -268,7 +289,10 @@ while True:
             new_folder_path = request_parts[2]
             # Acdbhd1348/home/example
             new_folder_path = new_folder_path.replace(client_folder, client_dir)
-            os.rename(os.path.abspath(old_folder_path), os.path.abspath(new_folder_path))
+            try:
+                os.rename(os.path.abspath(old_folder_path), os.path.abspath(new_folder_path))
+            except:
+                pass
             #connection.close()
         elif command == "alert-moved-file":
             computer_id = request_parts[4]
@@ -333,7 +357,7 @@ while True:
                     for name_of_file in folders:
                         os.rmdir(os.path.join(root, name_of_file))
             os.rmdir(os.path.abspath(path_to_delete))
-            add_changes(changes, client_id, client_id, request, dictionary)
+            add_changes(changes, client_id, computer_id, request, dictionary)
             #connection.close()
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
@@ -396,7 +420,7 @@ while True:
             f.close()
             #connection.close()
         elif command == FINISH:
-            #connection.close()
+            connection.close()
             print("Finished and went to wait to other clients.")
             break
         time.sleep(SLEEP_INTERVAL)
