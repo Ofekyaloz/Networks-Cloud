@@ -33,7 +33,6 @@ ALERT_DELETED_FILE = "alert-deleted-file"
 ALERT_MOVED_FILE = "alert-moved-file"
 SEND_DIR = "send-dir"
 CREATE_DIR = "create-dir"
-CREATE_FILE = "create-file"
 SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
 WRITE_BYTES = "wb+"
@@ -242,7 +241,7 @@ def get_changes_from_server(dir_path):
             folder_path = folder_path.replace(client_id[0:CLIENT_SHORT_ID_LENGTH], dir_path)
             create_folder(folder_path)
 
-        elif command == SEND_FILE or command == CREATE_FILE:
+        elif command == SEND_FILE:
             file_name = request_parts[1]
             file_size = int(request_parts[2])
             file_path = request_parts[3]
@@ -323,7 +322,7 @@ def on_created(event):
         file = os.path.basename(event.src_path)
         #send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
-        msg = (DELIMITER.join([CREATE_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isdir(event.src_path):
         msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id])).encode(UTF)
     else:
@@ -360,7 +359,7 @@ def on_moved(event):
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
         #send_file(s, event.dest_path, file, client_id)
-        msg = (DELIMITER.join([CREATE_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
     elif os.path.isfile(event.dest_path):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     else:
@@ -388,7 +387,7 @@ def send_watch(s, updates_set):
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
-        if (msg.decode(UTF)).startswith("send-file"):
+        if (msg.decode(UTF)).startswith(SEND_FILE):
             send_file(s, msg)
         print("watch send: ", msg[:30])
     updates_set = set()
@@ -397,14 +396,14 @@ def send_watch(s, updates_set):
 try:
     while True:
         print("awake")
-        #observer.stop()
+        observer.stop()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
         ask_change(last_visit)
         last_visit = time.time()
-        # observer = Observer()
-        # observer.schedule(handler, path=dir_path, recursive=True)
-        # observer.start()
+        observer = Observer()
+        observer.schedule(handler, path=dir_path, recursive=True)
+        observer.start()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
         print(updates_set)
