@@ -153,6 +153,7 @@ def send_all_files(path, computer_id, s):
 
 # receive changes from the server
 def get_changes_from_server(path):
+    updates_from_server = set()
     while True:
         request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
         request = request.decode(UTF, IGNORE)
@@ -161,7 +162,6 @@ def get_changes_from_server(path):
         except:
             length_of_packet = BUFFER_SIZE
         request = s.recv(length_of_packet).decode(UTF, IGNORE)
-
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
         if path.endswith(os.sep):
@@ -170,6 +170,7 @@ def get_changes_from_server(path):
             request = request.replace(EMPTY_FOLDER, path)
         print(command)
         # the server says that a folder was moved.
+        updates_from_server.add(request)
         if command == ALERT_MOVED_FOLDER:
             client_dir = get_client_id_folder(client_id)
             old_folder_path = request_parts[1]
@@ -224,8 +225,15 @@ def get_changes_from_server(path):
                 for name_of_folder in files:
                     os.remove(os.path.join(root, name_of_folder))
                 for name_of_folder in folders:
-                    os.rmdir(os.path.join(root, name_of_folder))
-            os.rmdir(os.path.abspath(path_to_delete))
+                    try:
+                        os.rmdir(os.path.join(root, name_of_folder))
+                    except:
+                        pass
+            try:
+                os.rmdir(os.path.abspath(path_to_delete))
+            except:
+                print("path doesnt exists")
+                pass
         if command == SEND_DIR:
             folder_path = request_parts[1]
             folder_path = folder_path.replace(client_id[0:MESSAGE_SIZE_HEADER_LENGTH], path)
@@ -246,12 +254,18 @@ def get_changes_from_server(path):
 
         elif command == FINISH:
             print("Finished")
-            msg = FINISH.encode(UTF)
-            msg_len = get_size(msg)
-            s.send(msg_len)
-            s.send(msg)
+            # for update in updates_set:
+            #     if update.decode in updates_from_server:
+            #             updates_set.remove(update)
+
+            updates_from_server = set()
+            #msg = FINISH.encode(UTF)
+            #msg_len = get_size(msg)
+            #s.send(msg_len)
+            #s.send(msg)
             s.close()
             break
+
         time.sleep(SLEEP_INTERVAL)
 
 computer_id = EMPTY_STRING.join(
