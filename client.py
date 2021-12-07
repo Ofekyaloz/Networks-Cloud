@@ -165,11 +165,13 @@ def get_changes_from_server(dir_path):
             length_of_packet = int(request)
         except:
             length_of_packet = BUFFER_SIZE
+        if request == "":
+            break
         request = s.recv(length_of_packet).decode(UTF, IGNORE)
-        if os.sep == WINDOWS_SEP:
-            request = request.replace(LINUX_SEP, WINDOWS_SEP)
-        else:
-            request = request.replace(WINDOWS_SEP, LINUX_SEP)
+        # if os.sep == WINDOWS_SEP:
+        #     request = request.replace(LINUX_SEP, WINDOWS_SEP)
+        # else:
+        #     request = request.replace(WINDOWS_SEP, LINUX_SEP)
         if dir_path.endswith(os.sep):
             dir_path = dir_path[:len(dir_path) - 1]
         if EMPTY_FOLDER in request:
@@ -255,9 +257,14 @@ def get_changes_from_server(dir_path):
             folder = file_path.replace(file_name, "")
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
-            data = s.recv(file_size)
-            print("Writing to file...")
-            f.write(data)
+            while True:
+                # read the bytes from the file
+                bytes_read = s.recv(4096)
+                if not bytes_read:
+                    # file transmitting is done
+                    break
+                f.write(bytes_read)
+            print("Finished writing to file...")
             f.close()
 
         elif command == FINISH:

@@ -266,10 +266,10 @@ while True:
             #raise e
             length_of_packet = BUFFER_SIZE
         request = connection.recv(length_of_packet).decode(UTF, IGNORE)
-        if os.sep == LINUX_SEP:
-            request = request.replace(WINDOWS_SEP, LINUX_SEP)
-        else:
-            request = request.replace(LINUX_SEP, WINDOWS_SEP)
+        # if os.sep == LINUX_SEP:
+        #     request = request.replace(WINDOWS_SEP, LINUX_SEP)
+        # else:
+        #     request = request.replace(LINUX_SEP, WINDOWS_SEP)
         if request != "":
             print(request)
         request_parts = request.split(DELIMITER)
@@ -391,6 +391,10 @@ while True:
             if is_first_hello.upper() == TRUE:
                 create_folder(client_id_folder)
                 send_all_folder(client_id_folder, connection)
+                msg = FINISH.encode(UTF)
+                sum = get_size(msg)
+                connection.send(sum)
+                connection.send(msg)
                 break
             #connection.close()
         # the client asks the server if there was a change.
