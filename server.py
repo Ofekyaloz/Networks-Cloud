@@ -287,8 +287,11 @@ while True:
     request = ""
     # until finished was not receive, handle the client.
     while True:
-        request = connection.recv(MESSAGE_LENGTH_HEADER_SIZE)
-        request = request.decode(UTF, IGNORE)
+        try:
+            request = connection.recv(MESSAGE_LENGTH_HEADER_SIZE)
+            request = request.decode(UTF, IGNORE)
+        except Exception as e:
+            print(e)
         try:
             length_of_packet = int(request)
         except Exception as e:
