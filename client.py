@@ -14,6 +14,8 @@ PORT_INDEX = 2
 PATH_INDEX = 3
 TIME_INTERVAL_INDEX = 4
 ID_INDEX = 5
+BIGGEST_SIZE_SOCKET = 9000000
+STANDARD_SIZE = 4096
 CLIENT_SHORT_ID_LENGTH = 15
 MINIMUM_ARGS_LENGTH = 5
 MAXIMUM_ARGS_LENGTH = 6
@@ -72,19 +74,27 @@ def arguments_check():
         return INVALID
     ip = sys.argv[IP_INDEX]
     port = sys.argv[PORT_INDEX]
-    if not port.isdigit():
-        print(f'Error: invalid port: {port}')
-        return INVALID
-
-    time_interval = sys.argv[TIME_INTERVAL_INDEX]
-    if not time_interval.isdigit():
-        print(f'Error: time interval: {sys.argv[TIME_INTERVAL_INDEX]} ,is not a number')
-        return INVALID
-    else:
-        time_interval = int(time_interval)
-        if time_interval <= 0:
-            print(f'time interval {time_interval} is not valid')
+    try:
+        if not port.isdigit():
+            print(f'Error: invalid port: {port}')
             return INVALID
+    except Exception as e:
+        print(e)
+    try:
+        time_interval = sys.argv[TIME_INTERVAL_INDEX]
+    except Exception as e:
+        print(e)
+    try:
+        if not time_interval.isdigit():
+            print(f'Error: time interval: {sys.argv[TIME_INTERVAL_INDEX]} ,is not a number')
+            return INVALID
+        else:
+            time_interval = int(time_interval)
+            if time_interval <= 0:
+                print(f'time interval {time_interval} is not valid')
+                return INVALID
+    except Exception as e:
+        print(e)
     if not os.path.isdir(sys.argv[PATH_INDEX]):
         create_folder(sys.argv[PATH_INDEX])
     else:
@@ -94,30 +104,43 @@ def arguments_check():
         print(f'IP: {ip} is not valid')
         return INVALID
     i = 0
-    for part in parts:
-        if not part.isdigit() or not 0 <= int(part) <= MAX_INT_IP or (i == 0 and int(part) == 0):
-            print(f'IP: {ip} is not valid')
-            return INVALID
-        i += 1
-
+    try:
+        for part in parts:
+            if not part.isdigit() or not 0 <= int(part) <= MAX_INT_IP or (i == 0 and int(part) == 0):
+                print(f'IP: {ip} is not valid')
+                return INVALID
+            i += 1
+    except Exception as e:
+        print(e)
 
 # return the size of a message, 12 chars
 def get_size(msg):
     sum = 0
-    for i in msg:
-        sum += 1
+    if msg is int:
+        msg = str(msg)
+    try:
+        for i in msg:
+            sum += 1
+    except Exception as e:
+        print(e)
     return str(sum).zfill(MESSAGE_SIZE_HEADER_LENGTH).encode(UTF)
 
 
 flag = arguments_check()
 if flag == INVALID:
     exit(INVALID)
-ip = sys.argv[IP_INDEX]
-port = int(sys.argv[PORT_INDEX])
-dir_path = sys.argv[PATH_INDEX]
-time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((ip, port))
+try:
+    ip = sys.argv[IP_INDEX]
+    port = int(sys.argv[PORT_INDEX])
+    dir_path = sys.argv[PATH_INDEX]
+    time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
+except:
+    print("the parameters are not in the correct order.")
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((ip, port))
+except:
+    print("The server is unreachable in ", (ip, port))
 new_client = False
 
 # if the client has id save it, else ask new id from the server
@@ -125,64 +148,86 @@ if len(sys.argv) == MAXIMUM_ARGS_LENGTH:
     client_id = sys.argv[5]
 else:
     new_client = True
-    s.send(('8'.zfill(12)).encode(UTF))
-    s.send(REGISTER.encode(UTF))
-    data = s.recv(132)
+    try:
+        s.send(('8'.zfill(12)).encode(UTF))
+        s.send(REGISTER.encode(UTF))
+        data = s.recv(132)
+    except Exception as e:
+        print(e)
     print("Server sent: ", data)
-    client_id = data.decode(UTF)
-
+    try:
+        client_id = data.decode(UTF)
+    except:
+        print(e)
 
 # send all the files from a specific path
 def send_all_files(path, computer_id, s):
     # root = paths, dirs = folders, files
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
-            folder_loc = os.path.join(root, folder)
-            msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id), computer_id])).encode(UTF)
-            msg_len = get_size(msg)
-            s.send(msg_len)
-            s.send(msg)
-
-        for file in files:
-            fileloc = os.path.join(root, file)
-            with open(fileloc, READ_BYTES) as f:
-                size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join(
-                    [SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
+            try:
+                folder_loc = os.path.join(root, folder)
+                msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id), computer_id])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
-                while True:
-                    # read the bytes from the file
-                    bytes_read = f.read(BUFFER_SIZE)
-                    if not bytes_read:
-                        # file transmitting is done
-                        break
-                    s.sendall(bytes_read)
-    msg = FINISH.encode(UTF)
-    msg_len = get_size(msg)
-    s.send(msg_len)
-    s.send(msg)
-    s.close()
-
+            except Exception as e:
+                print(e)
+        for file in files:
+            try:
+                fileloc = os.path.join(root, file)
+                with open(fileloc, READ_BYTES) as f:
+                    size = os.path.getsize(fileloc)
+                    msg = (DELIMITER.join(
+                        [SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
+                    msg_len = get_size(msg)
+                    s.send(msg_len)
+                    s.send(msg)
+                    while True:
+                        # read the bytes from the file
+                        bytes_read = f.read(BUFFER_SIZE)
+                        if not bytes_read:
+                            # file transmitting is done
+                            break
+                        s.sendall(bytes_read)
+            except Exception as e:
+                print(e)
+    try:
+        msg = FINISH.encode(UTF)
+        msg_len = get_size(msg)
+        s.send(msg_len)
+        s.send(msg)
+        s.close()
+    except Exception as e:
+        print(e)
 
 # receive changes from the server
 def get_changes_from_server(dir_path):
     updates_from_server = set()
     while True:
-        request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
-        request = request.decode(UTF, IGNORE)
+        try:
+            request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
+            request = request.decode(UTF, IGNORE)
+        except Exception as e:
+            print(e)
         try:
             length_of_packet = int(request)
         except:
             length_of_packet = BUFFER_SIZE
         if request == "":
+            try:
+                msg = FINISH.encode(UTF)
+                msg_len = get_size(msg)
+                s.send(msg_len)
+                s.send(msg)
+            except Exception as e:
+                print(e)
             break
-        request = s.recv(length_of_packet).decode(UTF, IGNORE)
-        # if os.sep == WINDOWS_SEP:
-        #     request = request.replace(LINUX_SEP, WINDOWS_SEP)
-        # else:
-        #     request = request.replace(WINDOWS_SEP, LINUX_SEP)
+        try:
+            request = s.recv(length_of_packet).decode(UTF, IGNORE)
+        except Exception as e:
+            print(e)
+
         if dir_path.endswith(os.sep):
             dir_path = dir_path[:len(dir_path) - 1]
         if EMPTY_FOLDER in request:
@@ -267,25 +312,45 @@ def get_changes_from_server(dir_path):
             file_path = convert_to_os(file_path.replace(client_id[0:15], dir_path))
             folder = convert_to_os(file_path.replace(file_name, ""))
             create_folder(folder)
-            f = open(file_path, WRITE_BYTES)
-            while True:
-                # read the bytes from the file
-                bytes_read = s.recv(4096)
-                if not bytes_read:
-                    # file transmitting is done
-                    break
+            try:
+                f = open(file_path, WRITE_BYTES)
+            except Exception as e:
+                print(e)
+            i = 0
+            sum = file_size
+            diff = STANDARD_SIZE
+            if file_size > BIGGEST_SIZE_SOCKET:
+                diff = BIGGEST_SIZE_SOCKET
+            try:
+                while i + diff < file_size:
+                    # read the bytes from the file
+                    bytes_read = s.recv(diff)
+                    if not bytes_read:
+                        # file transmitting is done
+                        break
+                    f.write(bytes_read)
+                    i += diff
+                    sum -= diff
+                bytes_read = s.recv(sum)
                 f.write(bytes_read)
-            print("Finished writing to file...")
-            f.close()
-
+                print("Finished writing to file...")
+                f.close()
+            except Exception as e:
+                print(e)
         elif command == FINISH:
             print("Finished")
             to_remove = []
             for update in updates_set:
-                if update.decode(UTF)[:-12] in updates_from_server:
-                    to_remove.append(update)
+                try:
+                    if update.decode(UTF)[:-12] in updates_from_server:
+                        to_remove.append(update)
+                except Exception as e:
+                    print(e)
             for update in to_remove:
-                updates_set.remove(update)
+                try:
+                    updates_set.remove(update)
+                except Exception as e:
+                    print(e)
             updates_from_server = set()
             # msg = FINISH.encode(UTF)
             # msg_len = get_size(msg)
@@ -417,13 +482,27 @@ time.sleep(time_interval)
 
 def send_watch(s, updates_set):
     print("send_watch")
-    for msg in updates_set:
-        msg_len = get_size(msg)
+    lst = list(updates_set)
+    updated_to_send = []
+    for msg in lst:
+        msg = str(msg)
+        if msg.startswith(ALERT_MOVED_FOLDER):
+            updated_to_send.append(msg)
+
+    for item in lst:
+        item = str(item)
+        if not item.startswith(ALERT_MOVED_FOLDER):
+            updated_to_send.append(item)
+
+    #lst.sort(reverse=True)
+
+    for message in updated_to_send:
+        msg_len = get_size(message)
         s.send(msg_len)
-        s.send(msg)
-        if (msg.decode(UTF)).startswith(SEND_FILE):
-            send_file(s, msg)
-        print("watch send: ", msg[:30])
+        s.send(message)
+        if (message.decode(UTF)).startswith(SEND_FILE):
+            send_file(s, message)
+        print("watch send: ", message[:30])
     updates_set = set()
     return updates_set
 

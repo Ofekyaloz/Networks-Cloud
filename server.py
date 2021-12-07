@@ -29,6 +29,8 @@ EMPTY_ID = "empty_id"
 EMPTY_FOLDER = "empty_folder"
 EMPTY_STRING = ""
 WRITE_BYTES = "wb+"
+BIGGEST_SIZE_SOCKET = 9000000
+STANDARD_SIZE = 4096
 SLEEP_INTERVAL = 2
 TRUE = "TRUE"
 # commands.
@@ -46,6 +48,8 @@ SEND_FILE = "send-file"
 
 
 def convert_to_os(path):
+    if path is not str:
+        path = str(path)
     if os.sep == LINUX_SEP:
         return path.replace(WINDOWS_SEP, LINUX_SEP)
     else:
@@ -109,6 +113,9 @@ def add_client_to_dictionary(dictionary, client_id, computer_id, path_to_folder)
 def get_size(msg):
     sum = 0
     # goes over the message and counts the letters
+    if msg is int:
+        print("*******" + msg +"******")
+        msg = str(msg)
     for i in msg:
         sum += 1
     return str(sum).zfill(MESSAGE_LENGTH_HEADER_SIZE).encode(UTF)
@@ -153,24 +160,30 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
 
         # goes over all the file and sends them.
         for file in files:
-            file_location = os.path.join(root, file)
-            with open(file_location, READ_BYTES) as f:
-                # opens a file and sends all of it.
-                size = os.path.getsize(file_location)
-                file_data = DELIMITER.join([SEND_FILE, str(file), str(size), str(file_location)])
-                msg = file_data.encode(UTF)
-                sum = get_size(msg)
-                if (not get_only_modified) or (
-                        get_only_modified and os.path.getmtime(file_location) - last_update_time > 16):
-                    conn.send(sum)
-                    conn.send(file_data.encode(UTF))
-                    while True:
-                        # read the bytes from the file
-                        bytes_read = f.read(BUFFER_SIZE)
-                        if not bytes_read:
-                            # file transmitting is done
-                            break
-                        conn.sendall(bytes_read)
+            try:
+                file_location = os.path.join(root, file)
+            except Exception as e:
+                print(e)
+            try:
+                with open(file_location, READ_BYTES) as f:
+                    # opens a file and sends all of it.
+                    size = os.path.getsize(file_location)
+                    file_data = DELIMITER.join([SEND_FILE, str(file), str(size), str(file_location)])
+                    msg = file_data.encode(UTF)
+                    sum = get_size(msg)
+                    if (not get_only_modified) or (
+                            get_only_modified and os.path.getmtime(file_location) - last_update_time > 16):
+                        conn.send(sum)
+                        conn.send(file_data.encode(UTF))
+                        while True:
+                            # read the bytes from the file
+                            bytes_read = f.read(BUFFER_SIZE)
+                            if not bytes_read:
+                                # file transmitting is done
+                                break
+                            conn.sendall(bytes_read)
+            except Exception as e:
+                print(e)
     # when it finishes it says it to the client, so it will know.
     msg = FINISH.encode(UTF)
     sum = get_size(msg)
@@ -449,13 +462,22 @@ while True:
             folder = convert_to_os(file_path.replace(file_name, EMPTY_STRING))
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
-            while True:
+            i = 0
+            sum = file_size
+            diff = STANDARD_SIZE
+            if file_size > BIGGEST_SIZE_SOCKET:
+                diff = BIGGEST_SIZE_SOCKET
+            while i + diff < file_size:
                 # read the bytes from the file
-                bytes_read = connection.recv(4096)
+                bytes_read = connection.recv(diff)
                 if not bytes_read:
                     # file transmitting is done
                     break
                 f.write(bytes_read)
+                i += diff
+                sum -= diff
+            bytes_read = connection.recv(sum)
+            f.write(bytes_read)
             print("Finished writing to file...")
             f.close()
             # connection.close()
