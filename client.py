@@ -424,15 +424,17 @@ class FileChangedHandler(FileSystemEventHandler):
 # send file
 def send_file(s, msg):
     fileloc = msg.decode(UTF).split(DELIMITER)[3]
-    with open(fileloc, READ_BYTES) as f:
-        while True:
-            # read the bytes from the file
-            bytes_read = f.read(BUFFER_SIZE)
-            if not bytes_read:
-                # file transmitting is done
-                break
-            s.sendall(bytes_read)
-
+    try:
+        with open(fileloc, READ_BYTES) as f:
+            while True:
+                # read the bytes from the file
+                bytes_read = f.read(BUFFER_SIZE)
+                if not bytes_read:
+                    # file transmitting is done
+                    break
+                s.sendall(bytes_read)
+    except Exception as e:
+        print(e)
 
 def on_created(event):
     print(f"created {event.src_path}")
@@ -464,6 +466,8 @@ def on_deleted(event):
 def on_modified(event):
     print(f"modified {event.src_path} ")
     file = os.path.basename(event.src_path)
+    if os.path.isdir(file) or (event.is_directory):
+        return
     if file.startswith(".") and os.sep == LINUX_SEP:
         return
     size = os.path.getsize(event.src_path)
