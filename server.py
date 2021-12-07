@@ -40,6 +40,8 @@ FINISH = "finish"
 REGISTER = "register"
 ALERT_MOVED_FOLDER = "alert-moved-folder"
 ALERT_DELETED_FOLDER = "alert-deleted-folder"
+ALERT_MOVED_FILE = "alert-moved-file"
+ALERT_DELETED_FILE = "alert-deleted-file"
 HELLO = "hello"
 ASK_CHANGED = "ask-changed"
 SEND_DIR = "send-dir"
@@ -188,7 +190,7 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                             conn.send(bytes_read)
                             i += diff
                             sum -= diff
-                        bytes_read = conn.read(sum)
+                        bytes_read = f.read(sum)
                         conn.send(bytes_read)
             except Exception as e:
                 print(e)
@@ -378,7 +380,7 @@ while True:
                 pass
             # connection.close()
             # connection.close()
-        elif command == "alert-moved-file":
+        elif command == ALERT_MOVED_FILE:
             computer_id = request_parts[4]
             client_id = request_parts[3]
             add_changes(changes, client_id, computer_id, request, dictionary)
@@ -400,7 +402,7 @@ while True:
         # if the client tells the server about deleting a folder
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
-        elif command == "alert-deleted-file":
+        elif command == ALERT_DELETED_FILE:
             computer_id = request_parts[3]
             client_id = request_parts[2]
             # /home/noam
