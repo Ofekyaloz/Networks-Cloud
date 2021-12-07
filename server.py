@@ -26,6 +26,7 @@ IGNORE = "ignore"
 DELIMITER = "@@@"
 ID_LENGTH = 128
 EMPTY_ID = "empty_id"
+CREATE_DIR = "create-dir"
 EMPTY_FOLDER = "empty_folder"
 EMPTY_STRING = ""
 WRITE_BYTES = "wb+"
@@ -279,6 +280,8 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
 
 
 client_id = EMPTY_STRING
+client_that_said_hello = []
+
 while True:
     connection, addr = server.accept()
     print('connected in address:', addr)
@@ -447,7 +450,7 @@ while True:
             connection.send(sum)
             connection.send(msg)
             break
-        elif command == SEND_DIR:
+        elif command == SEND_DIR or command == CREATE_DIR:
             computer_id = request_parts[3]
             folder_path = request_parts[1]
             client_id = request_parts[2]
@@ -455,6 +458,8 @@ while True:
             folder_path = convert_to_os(folder_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH]))
             # the server creates directory as the client told him.
             create_folder(folder_path)
+            if command == CREATE_DIR:
+                add_changes(changes, client_id, computer_id, request, dictionary)
             # connection.close()
         elif command == SEND_FILE:
             # the server receives a file from the client.
@@ -462,7 +467,11 @@ while True:
             file_size = int(request_parts[2])
             file_path = convert_to_os(request_parts[3])
             client_id = request_parts[4]
-            computer_id = request_parts[5]
+            try:
+                computer_id = request_parts[5]
+            except Exception as e:
+                computer_id = client_id
+                print(e)
             client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
             file_path = convert_to_os(file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH]))
             folder = convert_to_os(file_path.replace(file_name, EMPTY_STRING))
@@ -486,6 +495,8 @@ while True:
             f.write(bytes_read)
             print("Finished writing to file...")
             f.close()
+            if computer_id in client_that_said_hello:
+                add_changes(changes, client_id, computer_id, request, dictionary)
             # connection.close()
         elif command == FINISH:
             connection.close()
