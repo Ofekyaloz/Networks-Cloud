@@ -52,15 +52,17 @@ def send_watch(s, updates_set):
     lst = list(updates_set)
     updated_to_send = []
     for msg in lst:
-        msg = str(msg)
+        msg = msg.decode(UTF)
         if msg.startswith(ALERT_MOVED_FOLDER):
             updated_to_send.append(msg)
+    updated_to_send.reverse()
 
     for item in lst:
-        item = str(item)
+        item = msg.decode(UTF)
         if not item.startswith(ALERT_MOVED_FOLDER):
             updated_to_send.append(item)
-
+    # /temp/ofek/
+    # /temp/ofek/yaloz/noam/example.txt
     #lst.sort(reverse=True)
 
     for message in updated_to_send:
