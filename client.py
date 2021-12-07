@@ -47,6 +47,31 @@ EMPTY_STRING = ""
 global updates_set
 updates_set = set()
 
+def send_watch(s, updates_set):
+    print("send_watch")
+    lst = list(updates_set)
+    updated_to_send = []
+    for msg in lst:
+        msg = str(msg)
+        if msg.startswith(ALERT_MOVED_FOLDER):
+            updated_to_send.append(msg)
+
+    for item in lst:
+        item = str(item)
+        if not item.startswith(ALERT_MOVED_FOLDER):
+            updated_to_send.append(item)
+
+    #lst.sort(reverse=True)
+
+    for message in updated_to_send:
+        msg_len = get_size(message)
+        s.send(msg_len)
+        s.send(message)
+        if (message.decode(UTF)).startswith(SEND_FILE):
+            send_file(s, message)
+        print("watch send: ", message[:30])
+    updates_set = set()
+    return updates_set
 
 def convert_to_os(path):
     if os.sep == LINUX_SEP:
@@ -477,34 +502,6 @@ observer.schedule(handler, path=dir_path, recursive=True)
 observer.start()
 print("sleep")
 time.sleep(time_interval)
-
-
-def send_watch(s, updates_set):
-    print("send_watch")
-    lst = list(updates_set)
-    updated_to_send = []
-    for msg in lst:
-        msg = str(msg)
-        if msg.startswith(ALERT_MOVED_FOLDER):
-            updated_to_send.append(msg)
-
-    for item in lst:
-        item = str(item)
-        if not item.startswith(ALERT_MOVED_FOLDER):
-            updated_to_send.append(item)
-
-    #lst.sort(reverse=True)
-
-    for message in updated_to_send:
-        msg_len = get_size(message)
-        s.send(msg_len)
-        s.send(message)
-        if (message.decode(UTF)).startswith(SEND_FILE):
-            send_file(s, message)
-        print("watch send: ", message[:30])
-    updates_set = set()
-    return updates_set
-
 
 try:
     while True:
