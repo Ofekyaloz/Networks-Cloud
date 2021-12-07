@@ -31,7 +31,7 @@ SLEEP_INTERVAL = 2
 TRUE = "TRUE"
 # commands.
 SEND_DIR = "send-dir"
-BIGGEST_SIZE_SOCKET = 9000000
+BIGGEST_SIZE_SOCKET = 150000
 STANDARD_SIZE = 4096
 CREATE_DIR = "create-dir"
 READ_BYTES = "rb"
@@ -174,13 +174,22 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                             get_only_modified and os.path.getmtime(file_location) - last_update_time > 16):
                         conn.send(sum)
                         conn.send(file_data.encode(UTF))
-                        while True:
+                        i = 0
+                        sum = file_size
+                        diff = STANDARD_SIZE
+                        if file_size > BIGGEST_SIZE_SOCKET:
+                            diff = BIGGEST_SIZE_SOCKET
+                        while (i + diff) < file_size:
                             # read the bytes from the file
-                            bytes_read = f.read(BUFFER_SIZE)
+                            bytes_read = f.read(diff)
                             if not bytes_read:
                                 # file transmitting is done
                                 break
-                            conn.sendall(bytes_read)
+                            conn.send(bytes_read)
+                            i += diff
+                            sum -= diff
+                        bytes_read = conn.read(sum)
+                        conn.send(bytes_read)
             except Exception as e:
                 print(e)
     # when it finishes it says it to the client, so it will know.
@@ -287,13 +296,22 @@ def send_file(s, msg, client_dir, short_id):
     fileloc = fileloc.replace(client_dir, short_id)
     with open(fileloc, READ_BYTES) as f:
         # msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-        while True:
+        i = 0
+        sum = file_size
+        diff = STANDARD_SIZE
+        if file_size > BIGGEST_SIZE_SOCKET:
+            diff = BIGGEST_SIZE_SOCKET
+        while (i + diff) < file_size:
             # read the bytes from the file
-            bytes_read = f.read(BUFFER_SIZE)
+            bytes_read = f.read(diff)
             if not bytes_read:
                 # file transmitting is done
                 break
-            s.sendall(bytes_read)
+            s.send(bytes_read)
+            i += diff
+            sum -= diff
+        bytes_read = f.read(sum)
+        s.send(bytes_read)
 
 
 client_id = EMPTY_STRING
@@ -397,7 +415,15 @@ while True:
             try:
                 os.remove(path_to_delete)
             except:
-                pass
+                try:
+                    for root, folders, files in os.walk(path_to_delete, topdown=False):
+                        for name_of_file in files:
+                            os.remove(os.path.join(root, name_of_file))
+                        for name_of_file in folders:
+                            os.rmdir(os.path.join(root, name_of_file))
+                    os.rmdir(path_to_delete)
+                except Exception as e:
+                    print(e)
             add_changes(changes, client_id, computer_id, request, dictionary)
             # connection.close()
             # connection.close()
@@ -503,7 +529,7 @@ while True:
             diff = STANDARD_SIZE
             if file_size > BIGGEST_SIZE_SOCKET:
                 diff = BIGGEST_SIZE_SOCKET
-            while i + diff < file_size:
+            while (i + diff) < file_size:
                 # read the bytes from the file
                 bytes_read = connection.recv(diff)
                 if not bytes_read:

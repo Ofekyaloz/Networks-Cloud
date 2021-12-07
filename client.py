@@ -14,7 +14,7 @@ PORT_INDEX = 2
 PATH_INDEX = 3
 TIME_INTERVAL_INDEX = 4
 ID_INDEX = 5
-BIGGEST_SIZE_SOCKET = 9000000
+BIGGEST_SIZE_SOCKET = 150000
 STANDARD_SIZE = 4096
 CLIENT_SHORT_ID_LENGTH = 15
 MINIMUM_ARGS_LENGTH = 5
@@ -140,18 +140,27 @@ def send_all_files(path, computer_id, s):
         for file in files:
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
-                size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
+                file_size = os.path.getsize(fileloc)
+                msg = (DELIMITER.join([SEND_FILE, str(file), str(file_size), str(fileloc), str(client_id), computer_id])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
-                while True:
+                i = 0
+                sum = file_size
+                diff = STANDARD_SIZE
+                if file_size > BIGGEST_SIZE_SOCKET:
+                    diff = BIGGEST_SIZE_SOCKET
+                while (i + diff) < file_size:
                     # read the bytes from the file
-                    bytes_read = f.read(BUFFER_SIZE)
+                    bytes_read = f.read(diff)
                     if not bytes_read:
                         # file transmitting is done
                         break
-                    s.sendall(bytes_read)
+                    s.send(bytes_read)
+                    i += diff
+                    sum -= diff
+                bytes_read = f.read(sum)
+                s.send(bytes_read)
     msg = FINISH.encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -256,9 +265,23 @@ def get_changes_from_server(dir_path):
             folder = file_path.replace(file_name, "")
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
-            data = s.recv(file_size)
+            i = 0
+            sum = file_size
+            diff = STANDARD_SIZE
+            if file_size > BIGGEST_SIZE_SOCKET:
+                diff = BIGGEST_SIZE_SOCKET
+            while (i + diff) < file_size:
+                # read the bytes from the file
+                bytes_read = s.recv(diff)
+                if not bytes_read:
+                    # file transmitting is done
+                    break
+                f.write(bytes_read)
+                i += diff
+                sum -= diff
+            bytes_read = s.recv(sum)
+            f.write(bytes_read)
             print("Writing to file...")
-            f.write(data)
             f.close()
 
         elif command == FINISH:
@@ -312,17 +335,26 @@ class FileChangedHandler(FileSystemEventHandler):
 
 # send file
 def send_file(s , msg):
-    fileloc = msg.decode(UTF).split("@@@")[3]
+    fileloc = msg.decode(UTF).split(DELIMITER)[3]
+    file_size = int(msg.decode(UTF).split(DELIMITER)[2])
     with open(fileloc, READ_BYTES) as f:
         #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-        while True:
+        i = 0
+        sum = file_size
+        diff = STANDARD_SIZE
+        if file_size > BIGGEST_SIZE_SOCKET:
+            diff = BIGGEST_SIZE_SOCKET
+        while (i + diff) < file_size:
             # read the bytes from the file
-            bytes_read = f.read(BUFFER_SIZE)
+            bytes_read = f.read(diff)
             if not bytes_read:
                 # file transmitting is done
                 break
-            s.sendall(bytes_read)
-
+            s.send(bytes_read)
+            i += diff
+            sum -= diff
+        bytes_read = f.read(sum)
+        s.send(bytes_read)
 def on_created(event):
     print(f"created {event.src_path}")
     if os.path.isfile(event.src_path):
@@ -347,15 +379,17 @@ def on_deleted(event):
     print(msg[:30])
     updates_set.add(msg)
 
-
-# def on_modified(event):
-#     print(f"modified {event.src_path} ")
-#     file = os.path.basename(event.src_path)
-#     if file.startswith("."):
-#         return
-#     size = os.path.getsize(event.src_path)
-#     msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
-#     send_watch(s,msg)
+def on_modified(event):
+    print(f"modified {event.src_path} ")
+    file = os.path.basename(event.src_path)
+    if os.path.isdir(file) or (event.is_directory):
+        return
+    if file.startswith(".") and os.sep == LINUX_SEP:
+        return
+    size = os.path.getsize(event.src_path)
+    msg = (DELIMITER.join([SEND_FILE, str(file), str(size),
+                           str(event.src_path), str(client_id), computer_id])).encode(UTF)
+    updates_set.add(msg)
 
 # add move alert-moved-folder
 def on_moved(event):
@@ -378,7 +412,8 @@ def on_moved(event):
 handler = PatternMatchingEventHandler("*", None, False, True)
 handler.on_created = on_created
 handler.on_deleted = on_deleted
-# handler.on_modified = on_modified
+if os.sep == WINDOWS_SEP:
+    handler.on_modified = on_modified
 handler.on_moved = on_moved
 observer = Observer()
 observer.schedule(handler, path=dir_path, recursive=True)
