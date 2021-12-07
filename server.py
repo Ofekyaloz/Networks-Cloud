@@ -4,6 +4,8 @@ import socket
 import string
 import sys
 import time
+WINDOWS_SEP = "\\"
+LINUX_SEP = "/"
 
 # key : client_id
 # value : computer_id
@@ -61,11 +63,13 @@ HOST_IP = ''
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
+    print("bind to ", HOST_IP, int(sys.argv[PORT_INDEX]))
     server.bind((HOST_IP, int(sys.argv[PORT_INDEX])))
 except Exception as e:
     print(e)
     print("An invalid port was entered.");
 
+print("Listen amount", LISTEN_AMOUNT)
 server.listen(LISTEN_AMOUNT)
 
 # the dictioanry maps
@@ -262,6 +266,10 @@ while True:
             #raise e
             length_of_packet = BUFFER_SIZE
         request = connection.recv(length_of_packet).decode(UTF, IGNORE)
+        if os.sep == LINUX_SEP:
+            request = request.replace(WINDOWS_SEP, LINUX_SEP)
+        else:
+            request = request.replace(LINUX_SEP, WINDOWS_SEP)
         if request != "":
             print(request)
         request_parts = request.split(DELIMITER)

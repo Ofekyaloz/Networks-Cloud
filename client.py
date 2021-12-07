@@ -5,6 +5,9 @@ import random
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler, FileSystemEventHandler
 
+WINDOWS_SEP = "\\"
+LINUX_SEP = "/"
+
 INVALID = -1
 IP_INDEX = 1
 PORT_INDEX = 2
@@ -163,7 +166,10 @@ def get_changes_from_server(dir_path):
         except:
             length_of_packet = BUFFER_SIZE
         request = s.recv(length_of_packet).decode(UTF, IGNORE)
-
+        if os.sep == WINDOWS_SEP:
+            request = request.replace(LINUX_SEP, WINDOWS_SEP)
+        else:
+            request = request.replace(WINDOWS_SEP, LINUX_SEP)
         if dir_path.endswith(os.sep):
             dir_path = dir_path[:len(dir_path) - 1]
         if EMPTY_FOLDER in request:
