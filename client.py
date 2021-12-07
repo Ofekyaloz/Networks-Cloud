@@ -133,6 +133,8 @@ try:
     ip = sys.argv[IP_INDEX]
     port = int(sys.argv[PORT_INDEX])
     dir_path = sys.argv[PATH_INDEX]
+    if dir_path.endswith(os.sep):
+        dir_path = dir_path[:len(dir_path) - 1]
     time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
 except:
     print("the parameters are not in the correct order.")
@@ -227,9 +229,6 @@ def get_changes_from_server(dir_path):
             request = s.recv(length_of_packet).decode(UTF, IGNORE)
         except Exception as e:
             print(e)
-
-        if dir_path.endswith(os.sep):
-            dir_path = dir_path[:len(dir_path) - 1]
         if EMPTY_FOLDER in request:
             request = request.replace(EMPTY_FOLDER, dir_path)
         request_parts = request.split(DELIMITER)
