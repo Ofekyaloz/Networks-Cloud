@@ -295,7 +295,10 @@ while True:
             # print(e)
             # raise e
             length_of_packet = BUFFER_SIZE
-        request = connection.recv(length_of_packet).decode(UTF, IGNORE)
+        try:
+            request = connection.recv(length_of_packet).decode(UTF, IGNORE)
+        except Exception as e:
+            print(e)
         if request != "":
             print(request)
         request_parts = request.split(DELIMITER)
