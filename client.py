@@ -45,11 +45,13 @@ EMPTY_STRING = ""
 global updates_set
 updates_set = set()
 
+
 def convert_to_os(path):
     if os.sep == LINUX_SEP:
         return path.replace(WINDOWS_SEP, LINUX_SEP)
     else:
         return path.replace(LINUX_SEP, WINDOWS_SEP)
+
 
 def create_folder(folder_path):
     try:
@@ -58,8 +60,10 @@ def create_folder(folder_path):
     except Exception as e:
         print("folder " + folder_path + " already exists.")
 
+
 def get_client_id_folder(client_id):
     return client_id[:CLIENT_SHORT_ID_LENGTH]
+
 
 # function that checks validity of the parameters.
 def arguments_check():
@@ -95,6 +99,7 @@ def arguments_check():
             print(f'IP: {ip} is not valid')
             return INVALID
         i += 1
+
 
 # return the size of a message, 12 chars
 def get_size(msg):
@@ -142,7 +147,8 @@ def send_all_files(path, computer_id, s):
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
                 size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
+                msg = (DELIMITER.join(
+                    [SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
@@ -213,7 +219,7 @@ def get_changes_from_server(dir_path):
             # Acdbhd1348/home/noam
             path_to_delete = convert_to_os(path_in_file.replace(client_dir, dir_path))
             try:
-            # the server delete the folder in its side.
+                # the server delete the folder in its side.
                 os.remove(path_to_delete)
             except Exception as e:
                 print(e)
@@ -277,21 +283,22 @@ def get_changes_from_server(dir_path):
             to_remove = []
             for update in updates_set:
                 if update.decode(UTF)[:-12] in updates_from_server:
-                        to_remove.append(update)
+                    to_remove.append(update)
             for update in to_remove:
                 updates_set.remove(update)
             updates_from_server = set()
-            #msg = FINISH.encode(UTF)
-            #msg_len = get_size(msg)
-            #s.send(msg_len)
-            #s.send(msg)
+            # msg = FINISH.encode(UTF)
+            # msg_len = get_size(msg)
+            # s.send(msg_len)
+            # s.send(msg)
             s.close()
             break
 
         time.sleep(SLEEP_INTERVAL)
 
+
 computer_id = EMPTY_STRING.join(
-                random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in range(ID_LENGTH))
+    random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in range(ID_LENGTH))
 print("computer id: ", computer_id)
 last_visit = time.time()
 if new_client:
@@ -307,6 +314,7 @@ else:
     s.send(msg)
     get_changes_from_server(dir_path)
 
+
 # ask changes from the server
 def ask_change(last_visit):
     print("ask change")
@@ -321,8 +329,9 @@ class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
         print(f'{e.event_type}, {e.src_path}')
 
+
 # send file
-def send_file(s , msg):
+def send_file(s, msg):
     fileloc = msg.decode(UTF).split(DELIMITER)[3]
     with open(fileloc, READ_BYTES) as f:
         while True:
@@ -333,13 +342,16 @@ def send_file(s , msg):
                 break
             s.sendall(bytes_read)
 
+
 def on_created(event):
     print(f"created {event.src_path}")
     if os.path.isfile(event.src_path):
         file = os.path.basename(event.src_path)
-        #send_file(s, event.src_path, file, client_id)
+        # send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (
+            DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(
+            UTF)
     elif os.path.isdir(event.src_path):
         msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id])).encode(UTF)
     else:
@@ -358,26 +370,31 @@ def on_deleted(event):
     updates_set.add(msg)
 
 
-# def on_modified(event):
-#     print(f"modified {event.src_path} ")
-#     file = os.path.basename(event.src_path)
-#     if file.startswith("."):
-#         return
-#     size = os.path.getsize(event.src_path)
-#     msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
-#     send_watch(s,msg)
+def on_modified(event):
+    print(f"modified {event.src_path} ")
+    file = os.path.basename(event.src_path)
+    if file.startswith("."):
+        return
+    size = os.path.getsize(event.src_path)
+    msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
+    send_watch(s, msg)
+
 
 # add move alert-moved-folder
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     if event.is_directory:
-        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join(
+            [ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     elif (".goutputstream") in str(event.src_path):
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (
+            DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(
+            UTF)
     elif os.path.isfile(event.dest_path):
-        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join(
+            [ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     else:
         return
     print(msg[:30])
@@ -387,7 +404,8 @@ def on_moved(event):
 handler = PatternMatchingEventHandler("*", None, False, True)
 handler.on_created = on_created
 handler.on_deleted = on_deleted
-# handler.on_modified = on_modified
+if os.sep == WINDOWS_SEP:
+    handler.on_modified = on_modified
 handler.on_moved = on_moved
 observer = Observer()
 observer.schedule(handler, path=dir_path, recursive=True)
@@ -408,6 +426,7 @@ def send_watch(s, updates_set):
         print("watch send: ", msg[:30])
     updates_set = set()
     return updates_set
+
 
 try:
     while True:
