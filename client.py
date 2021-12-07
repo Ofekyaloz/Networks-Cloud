@@ -462,12 +462,11 @@ def on_deleted(event):
 def on_modified(event):
     print(f"modified {event.src_path} ")
     file = os.path.basename(event.src_path)
-    if file.startswith("."):
+    if file.startswith(".") and os.sep == LINUX_SEP:
         return
     size = os.path.getsize(event.src_path)
     msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id)])).encode(UTF)
-    send_watch(s, msg)
-
+    updates_set.add(msg)
 
 # add move alert-moved-folder
 def on_moved(event):
