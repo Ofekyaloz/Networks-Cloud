@@ -156,9 +156,11 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
             # os.path.getmtime - means the date it was modified.
             if (not get_only_modified) or (get_only_modified and
                                            os.path.getmtime(folder_loc) - last_update_time > 0):
-                conn.send(msg_len)
-                conn.send(msg)
-
+                try:
+                    conn.send(msg_len)
+                    conn.send(msg)
+                except Exception as e:
+                    print(e)
         # goes over all the file and sends them.
         for file in files:
             try:
@@ -515,10 +517,12 @@ while True:
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
+            read_from_file = 0
             while data_left_to_read > 0:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     time.sleep(0.5)
                     data = connection.recv(data_left_to_read)
+                    read_from_file = len(data)
                     if not data:
                         break
                     print("Writing to file...")
@@ -530,10 +534,14 @@ while True:
                     time.sleep(0.5)
                     data = connection.recv(BIGGEST_SIZE_SOCKET)
                     data_left_to_read -= len(data)
+                    read_from_file += len(data)
                     if not data:
                         break
                     print("Writing...")
                     f.write(data)
+                print("read: ", read_from_file, " left: ", data_left_to_read)
+                print(read_from_file / file_size)
+                print("Finished writing to file...")
             print("Finished writing to file...")
             if is_first_hello == "FALSE":
                 add_changes(changes, client_id, computer_id, request, dictionary)
