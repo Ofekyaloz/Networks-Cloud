@@ -43,6 +43,12 @@ EMPTY_STRING = ""
 global updates_set
 updates_set = set()
 
+def convert_to_os(path):
+    if os.sep == LINUX_SEP:
+        return path.replace(WINDOWS_SEP, LINUX_SEP)
+    else:
+        return path.replace(LINUX_SEP, WINDOWS_SEP)
+
 
 def create_folder(folder_path):
     try:
@@ -453,13 +459,6 @@ def send_watch(s, updates_set):
         print("watch send: ", message[:45])
     updates_set = set()
     return updates_set
-
-
-def convert_to_os(path):
-    if os.sep == LINUX_SEP:
-        return path.replace(WINDOWS_SEP, LINUX_SEP)
-    else:
-        return path.replace(LINUX_SEP, WINDOWS_SEP)
 
 try:
     # loop of: receiving data from the server, set up the watchdog and send to the server updates if exists
