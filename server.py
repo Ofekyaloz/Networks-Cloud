@@ -48,9 +48,11 @@ SEND_DIR = "send-dir"
 SEND_FILE = "send-file"
 
 
+def convert_path(path, old_slash):
+    new_slash = os.sep
+    return path.replace(old_slash, new_slash)
+
 def convert_to_os(path):
-    if path is not str:
-        path = str(path)
     if os.sep == LINUX_SEP:
         return path.replace(WINDOWS_SEP, LINUX_SEP)
     else:
@@ -347,21 +349,22 @@ while True:
         # and will update other connections with the same client_id.
         elif command == ALERT_MOVED_FOLDER:
             counter += 1
+            seperator = request_parts[5]
             computer_id = request_parts[4]
             client_id = request_parts[3]
             client_folder = get_folder_by_id(dictionary, client_id, computer_id)
             add_changes(changes, client_id, computer_id, request, dictionary)
             # /home/noam
-            client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
+            client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), seperator)
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            old_folder_path = request_parts[1]
+            old_folder_path = convert_path(request_parts[1], seperator)
             # Acdbhd1348/home/noam
-            old_folder_path = convert_to_os(old_folder_path.replace(client_folder, client_dir))
-            new_folder_path = convert_to_os(request_parts[2])
+            old_folder_path = old_folder_path.replace(client_folder, client_dir)
+            new_folder_path = convert_path(request_parts[2], seperator)
 
             # Acdbhd1348/home/example
-            new_folder_path = convert_to_os(new_folder_path.replace(client_folder, client_dir))
+            new_folder_path = convert_path(new_folder_path.replace(client_folder, client_dir), seperator)
             try:
                 os.rename(os.path.abspath(old_folder_path), os.path.abspath(new_folder_path))
             except:
@@ -369,19 +372,20 @@ while True:
             # connection.close()
             # connection.close()
         elif command == ALERT_MOVED_FILE:
+            seperator = request_parts[5]
             computer_id = request_parts[4]
             client_id = request_parts[3]
             add_changes(changes, client_id, computer_id, request, dictionary)
             # /home/noam
-            client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
+            client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), seperator)
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            old_file_path = request_parts[1]
+            old_file_path = convert_path(request_parts[1], seperator)
             # Acdbhd1348/home/noam
-            old_file_path = convert_to_os(old_file_path.replace(client_folder, client_dir))
-            new_file_path = convert_to_os(request_parts[2])
+            old_file_path = old_file_path.replace(client_folder, client_dir)
+            new_file_path = convert_path(request_parts[2], seperator)
             # Acdbhd1348/home/example
-            new_file_path = convert_to_os(new_file_path.replace(client_folder, client_dir))
+            new_file_path = new_file_path.replace(client_folder, client_dir)
             try:
                 os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
             except:
@@ -391,16 +395,17 @@ while True:
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
         elif command == ALERT_DELETED_FILE:
+            seperator = request_parts[4]
             computer_id = request_parts[3]
             client_id = request_parts[2]
             # /home/noam
-            client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
+            client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), seperator)
             # /home/noam/example
-            path_in_file = request_parts[1]
+            path_in_file = convert_path(request_parts[1], seperator)
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
-            path_to_delete = convert_to_os(path_in_file.replace(client_folder, client_dir))
+            path_to_delete = path_in_file.replace(client_folder, client_dir)
             # the server delete the folder in its side.
             try:
                 os.remove(path_to_delete)
@@ -418,16 +423,17 @@ while True:
             # connection.close()
             # connection.close()
         elif command == ALERT_DELETED_FOLDER:
+            seperator = request_parts[4]
             computer_id = request_parts[3]
             client_id = request_parts[2]
             # /home/noam
-            client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
+            client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), seperator)
             # /home/noam/example
-            path_in_client = convert_to_os(request_parts[1])
+            path_in_client = convert_path(request_parts[1], seperator)
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
-            path_to_delete = convert_to_os(path_in_client.replace(client_folder, client_dir))
+            path_to_delete = path_in_client.replace(client_folder, client_dir)
             should_do_for_recursive = True
             if (os.path.isfile(path_to_delete)):
                 os.remove(path_to_delete)
@@ -452,8 +458,9 @@ while True:
         # send it in every request as parameter.
         elif command == HELLO:
             client_id = request_parts[1]
+            seperator = request_parts[5]
             client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
-            client_folder = request_parts[2]
+            client_folder = convert_path(request_parts[2], seperator)
             is_first_hello = request_parts[3]
             computer_id = request_parts[4]
             add_client_to_dictionary(dictionary, client_id, computer_id, client_folder)
@@ -472,6 +479,7 @@ while True:
             # connection.close()
         # the client asks the server if there was a change.
         elif command == ASK_CHANGED:
+            seperator = request_parts[4]
             computer_id = request_parts[3]
             client_id = request_parts[2]
             my_last_update_time = float(request_parts[1])
@@ -488,11 +496,12 @@ while True:
             connection.close()
             break
         elif command == SEND_DIR or command == CREATE_DIR:
+            seperator = request_parts[4]
             computer_id = request_parts[3]
-            folder_path = request_parts[1]
+            folder_path = convert_path(request_parts[1], seperator)
             client_id = request_parts[2]
-            client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
-            folder_path = convert_to_os(folder_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH]))
+            client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), seperator)
+            folder_path = folder_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
             # the server creates directory as the client told him.
             create_folder(folder_path)
             if command == CREATE_DIR:
@@ -502,7 +511,8 @@ while True:
             # the server receives a file from the client.
             file_name = request_parts[1]
             file_size = int(request_parts[2])
-            file_path = convert_to_os(request_parts[3])
+            seperator = request_parts[7]
+            file_path = convert_path(request_parts[3], seperator)
             client_id = request_parts[4]
             is_first_hello = "FALSE"
             try:
@@ -511,9 +521,9 @@ while True:
             except Exception as e:
                 computer_id = client_id
                 print(e)
-            client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
-            file_path = convert_to_os(file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH]))
-            folder = convert_to_os(file_path.replace(file_name, EMPTY_STRING))
+            client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), seperator)
+            file_path = file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
+            folder = file_path.replace(file_name, EMPTY_STRING)
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
