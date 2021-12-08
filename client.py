@@ -367,6 +367,8 @@ def send_file(s , msg):
         s.send(bytes_read)
 def on_created(event):
     print(f"created {event.src_path}")
+    if os.sep == LINUX_SEP and (".goutputstream") in str(event.src_path):
+        return
     if os.path.isfile(event.src_path):
         file = os.path.basename(event.src_path)
         #send_file(s, event.src_path, file, client_id)
