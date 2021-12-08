@@ -132,7 +132,7 @@ def send_all_files(path, computer_id, s):
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
-            msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id), computer_id])).encode(UTF)
+            msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id), computer_id, os.sep])).encode(UTF)
             msg_len = get_size(msg)
             s.send(msg_len)
             s.send(msg)
@@ -141,7 +141,7 @@ def send_all_files(path, computer_id, s):
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
                 file_size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join([SEND_FILE, str(file), str(file_size), str(fileloc), str(client_id), computer_id, "TRUE"])).encode(UTF)
+                msg = (DELIMITER.join([SEND_FILE, str(file), str(file_size), str(fileloc), str(client_id), computer_id, "TRUE", os.sep])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
@@ -305,10 +305,6 @@ def get_changes_from_server(dir_path):
             for update in to_remove:
                 updates_set.remove(update)
             updates_from_server = set()
-            #msg = FINISH.encode(UTF)
-            #msg_len = get_size(msg)
-            #s.send(msg_len)
-            #s.send(msg)
             s.close()
             break
 
@@ -319,13 +315,13 @@ computer_id = EMPTY_STRING.join(
 print("computer id: ", computer_id)
 last_visit = time.time()
 if new_client:
-    msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False", computer_id])).encode(UTF)
+    msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False", computer_id, os.sep])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
     send_all_files(dir_path, computer_id, s)
 else:
-    msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True", computer_id])).encode(UTF)
+    msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "True", computer_id, os.sep])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -334,7 +330,7 @@ else:
 # ask changes from the server
 def ask_change(last_visit):
     print("ask change")
-    msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id), computer_id])).encode(UTF)
+    msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id), computer_id, os.sep])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
     s.send(msg)
@@ -360,7 +356,6 @@ def send_file(s , msg):
                     break
                 data_left_to_read -= len(bytes_read)
                 s.sendall(bytes_read)
-            #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
     except Exception as e:
         pass
 
@@ -372,9 +367,9 @@ def on_created(event):
         file = os.path.basename(event.src_path)
         #send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     elif os.path.isdir(event.src_path):
-        msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
     print(msg[:45])
@@ -384,9 +379,9 @@ def on_created(event):
 def on_deleted(event):
     print(f"deleted {event.src_path}")
     if event.is_directory:
-        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
     else:
-        msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
     print(msg[:45])
     updates_set.add(msg)
 
@@ -399,21 +394,21 @@ def on_modified(event):
         return
     size = os.path.getsize(event.src_path)
     msg = (DELIMITER.join([SEND_FILE, str(file), str(size),
-                           str(event.src_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
+                           str(event.src_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     updates_set.add(msg)
 
 # add move alert-moved-folder
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     if event.is_directory:
-        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id, os.sep])).encode(UTF)
     elif (".goutputstream") in str(event.src_path) and os.sep == LINUX_SEP:
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
         #send_file(s, event.dest_path, file, client_id)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.dest_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.dest_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     elif os.path.isfile(event.dest_path):
-        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
     print(msg[:45])
