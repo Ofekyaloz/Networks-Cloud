@@ -515,10 +515,12 @@ while True:
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
+            read_from_file = 0
             while data_left_to_read > 0:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     time.sleep(0.5)
                     data = connection.recv(data_left_to_read)
+                    read_from_file = len(data)
                     if not data:
                         break
                     print("Writing to file...")
@@ -530,10 +532,14 @@ while True:
                     time.sleep(0.5)
                     data = connection.recv(BIGGEST_SIZE_SOCKET)
                     data_left_to_read -= len(data)
+                    read_from_file += len(data)
                     if not data:
                         break
                     print("Writing...")
                     f.write(data)
+                print("read: ", read_from_file, " left: ", data_left_to_read)
+                print(read_from_file / file_size)
+                print("Finished writing to file...")
             print("Finished writing to file...")
             if is_first_hello == "FALSE":
                 add_changes(changes, client_id, computer_id, request, dictionary)
