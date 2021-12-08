@@ -176,22 +176,13 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                             get_only_modified and os.path.getmtime(file_location) - last_update_time > 16):
                         conn.send(sum)
                         conn.send(file_data.encode(UTF))
-                        i = 0
-                        sum = file_size
-                        diff = STANDARD_SIZE
-                        if file_size > BIGGEST_SIZE_SOCKET:
-                            diff = BIGGEST_SIZE_SOCKET
-                        while (i + diff) < file_size:
+                        while True:
                             # read the bytes from the file
-                            bytes_read = f.read(diff)
+                            bytes_read = f.read(BUFFER_SIZE)
                             if not bytes_read:
                                 # file transmitting is done
                                 break
-                            conn.send(bytes_read)
-                            i += diff
-                            sum -= diff
-                        bytes_read = f.read(sum)
-                        conn.send(bytes_read)
+                            conn.sendall(bytes_read)
             except Exception as e:
                 print(e)
     # when it finishes it says it to the client, so it will know.
@@ -299,22 +290,13 @@ def send_file(s, msg, client_dir, short_id):
     fileloc = fileloc.replace(EMPTY_FOLDER, short_id)
     with open(fileloc, READ_BYTES) as f:
         # msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-        i = 0
-        sum = file_size
-        diff = STANDARD_SIZE
-        if file_size > BIGGEST_SIZE_SOCKET:
-            diff = BIGGEST_SIZE_SOCKET
-        while (i + diff) < file_size:
+        while True:
             # read the bytes from the file
-            bytes_read = f.read(diff)
+            bytes_read = f.read(BUFFER_SIZE)
             if not bytes_read:
                 # file transmitting is done
                 break
-            s.send(bytes_read)
-            i += diff
-            sum -= diff
-        bytes_read = f.read(sum)
-        s.send(bytes_read)
+            s.sendall(bytes_read)
 
 
 client_id = EMPTY_STRING
@@ -369,7 +351,6 @@ while True:
             client_dir = get_client_id_folder(client_id)
             old_folder_path = request_parts[1]
             # Acdbhd1348/home/noam
-            # ************ important to change slash to os *****************
             old_folder_path = convert_to_os(old_folder_path.replace(client_folder, client_dir))
             new_folder_path = convert_to_os(request_parts[2])
 
@@ -529,24 +510,20 @@ while True:
             folder = convert_to_os(file_path.replace(file_name, EMPTY_STRING))
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
-            i = 0
-            sum = file_size
-            diff = STANDARD_SIZE
-            if file_size > BIGGEST_SIZE_SOCKET:
-                diff = BIGGEST_SIZE_SOCKET
-            while (i + diff) < file_size:
-                # read the bytes from the file
-                bytes_read = connection.recv(diff)
-                if not bytes_read:
-                    # file transmitting is done
+            data_left_to_read = file_size
+            while True:
+                if data_left_to_read < BIGGEST_SIZE_SOCKET:
+                    data = connection.recv(data_left_to_read)
+                    print("Writing to file...")
+                    f.write(data)
+                    f.close()
                     break
-                f.write(bytes_read)
-                i += diff
-                sum -= diff
-            bytes_read = connection.recv(sum)
-            f.write(bytes_read)
+                else:
+                    data = connection.recv(BIGGEST_SIZE_SOCKET)
+                    data_left_to_read -= BIGGEST_SIZE_SOCKET
+                    print("Writing...")
+                    f.write(data)
             print("Finished writing to file...")
-            f.close()
             if is_first_hello == "FALSE":
                 add_changes(changes, client_id, computer_id, request, dictionary)
             # connection.close()

@@ -145,22 +145,13 @@ def send_all_files(path, computer_id, s):
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
-                i = 0
-                sum = file_size
-                diff = STANDARD_SIZE
-                if file_size > BIGGEST_SIZE_SOCKET:
-                    diff = BIGGEST_SIZE_SOCKET
-                while (i + diff) < file_size:
+                while True:
                     # read the bytes from the file
-                    bytes_read = f.read(diff)
+                    bytes_read = f.read(BUFFER_SIZE)
                     if not bytes_read:
                         # file transmitting is done
                         break
-                    s.send(bytes_read)
-                    i += diff
-                    sum -= diff
-                bytes_read = f.read(sum)
-                s.send(bytes_read)
+                    s.sendall(bytes_read)
     msg = FINISH.encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -275,24 +266,19 @@ def get_changes_from_server(dir_path):
             folder = file_path.replace(file_name, "")
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
-            i = 0
-            sum = file_size
-            diff = STANDARD_SIZE
-            if file_size > BIGGEST_SIZE_SOCKET:
-                diff = BIGGEST_SIZE_SOCKET
-            while (i + diff) < file_size:
-                # read the bytes from the file
-                bytes_read = s.recv(diff)
-                if not bytes_read:
-                    # file transmitting is done
+            data_left_to_read = file_size
+            while True:
+                if data_left_to_read < BIGGEST_SIZE_SOCKET:
+                    data = s.recv(data_left_to_read)
+                    print("Writing to file...")
+                    f.write(data)
+                    f.close()
                     break
-                f.write(bytes_read)
-                i += diff
-                sum -= diff
-            bytes_read = s.recv(sum)
-            f.write(bytes_read)
-            print("Writing to file...")
-            f.close()
+                else:
+                    data = s.recv(BIGGEST_SIZE_SOCKET)
+                    data_left_to_read -= BIGGEST_SIZE_SOCKET
+                    print("Writing...")
+                    f.write(data)
 
         elif command == FINISH:
             print("Finished")
@@ -349,23 +335,14 @@ def send_file(s , msg):
     file_size = int(msg.decode(UTF).split(DELIMITER)[2])
     try:
         with open(fileloc, READ_BYTES) as f:
-            #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-            i = 0
-            sum = file_size
-            diff = STANDARD_SIZE
-            if file_size > BIGGEST_SIZE_SOCKET:
-                diff = BIGGEST_SIZE_SOCKET
-            while (i + diff) < file_size:
+            while True:
                 # read the bytes from the file
-                bytes_read = f.read(diff)
+                bytes_read = f.read(BUFFER_SIZE)
                 if not bytes_read:
                     # file transmitting is done
                     break
-                s.send(bytes_read)
-                i += diff
-                sum -= diff
-            bytes_read = f.read(sum)
-            s.send(bytes_read)
+                s.sendall(bytes_read)
+            #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
     except Exception as e:
         pass
 
