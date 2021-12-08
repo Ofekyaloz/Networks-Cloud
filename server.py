@@ -65,7 +65,7 @@ def get_folder_by_id(dictionary, id, computer_id):
     # { 'ABcdefg12356683', {'computerIdAecnkdjsj', 'ofek/noam/temp'} }
     for client_id, value in dictionary.items():
         if id[:15] == client_id and computer_id in value.keys():
-            return value[computer_id]
+            return convert_to_os(value[computer_id])
     return EMPTY_FOLDER
 
 
@@ -102,7 +102,7 @@ def add_client_to_dictionary(dictionary, client_id, computer_id, path_to_folder)
     # if the client is not registered, add it to dictionary.
     if client_id_folder not in dictionary:
         dictionary[client_id_folder] = {}
-    dictionary[client_id_folder][computer_id] = path_to_folder
+    dictionary[client_id_folder][computer_id] = convert_to_os(path_to_folder)
 
 
 # gets a message, and returns the size of the message.
@@ -131,6 +131,7 @@ def get_client_id_folder(client_id):
 # create a folder on the server side.
 def create_folder(folder_path):
     try:
+        folder_path = convert_to_os(folder_path)
         os.makedirs(folder_path)
         print("created folder " + folder_path)
     except Exception as e:
@@ -164,7 +165,7 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
         # goes over all the file and sends them.
         for file in files:
             try:
-                file_location = os.path.join(root, file)
+                file_location = convert_to_os(os.path.join(root, file))
             except Exception as e:
                 print(e)
             try:
@@ -289,11 +290,10 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
 
 # send file
 def send_file(s, msg, client_dir, short_id):
-    fileloc = msg.decode(UTF).split("@@@")[3]
-    fileloc = fileloc.replace(client_dir, short_id)
-    fileloc = fileloc.replace(EMPTY_FOLDER, short_id)
+    fileloc = convert_to_os(msg.decode(UTF).split(DELIMITER)[3])
+    fileloc = convert_to_os(fileloc.replace(client_dir, short_id))
+    fileloc = convert_to_os(fileloc.replace(EMPTY_FOLDER, short_id))
     with open(fileloc, READ_BYTES) as f:
-        # msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
         data_left_to_read = file_size
         while data_left_to_read > 0:
             # read the bytes from the file
@@ -349,13 +349,12 @@ while True:
             counter += 1
             computer_id = request_parts[4]
             client_id = request_parts[3]
-            client_folder = get_folder_by_id(dictionary, client_id, computer_id)
             add_changes(changes, client_id, computer_id, request, dictionary)
             # /home/noam
             client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            old_folder_path = request_parts[1]
+            old_folder_path = convert_to_os(request_parts[1])
             # Acdbhd1348/home/noam
             old_folder_path = convert_to_os(old_folder_path.replace(client_folder, client_dir))
             new_folder_path = convert_to_os(request_parts[2])
@@ -376,7 +375,7 @@ while True:
             client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            old_file_path = request_parts[1]
+            old_file_path = convert_to_os(request_parts[1])
             # Acdbhd1348/home/noam
             old_file_path = convert_to_os(old_file_path.replace(client_folder, client_dir))
             new_file_path = convert_to_os(request_parts[2])
@@ -396,7 +395,7 @@ while True:
             # /home/noam
             client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
             # /home/noam/example
-            path_in_file = request_parts[1]
+            path_in_file = convert_to_os(request_parts[1])
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
@@ -453,7 +452,7 @@ while True:
         elif command == HELLO:
             client_id = request_parts[1]
             client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
-            client_folder = request_parts[2]
+            client_folder = get_client_id_folder(request_parts[2])
             is_first_hello = request_parts[3]
             computer_id = request_parts[4]
             add_client_to_dictionary(dictionary, client_id, computer_id, client_folder)
@@ -489,7 +488,7 @@ while True:
             break
         elif command == SEND_DIR or command == CREATE_DIR:
             computer_id = request_parts[3]
-            folder_path = request_parts[1]
+            folder_path = get_client_id_folder(request_parts[1])
             client_id = request_parts[2]
             client_folder = convert_to_os(get_folder_by_id(dictionary, client_id, computer_id))
             folder_path = convert_to_os(folder_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH]))
