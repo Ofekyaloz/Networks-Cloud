@@ -176,12 +176,14 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                             get_only_modified and os.path.getmtime(file_location) - last_update_time > 16):
                         conn.send(sum)
                         conn.send(file_data.encode(UTF))
-                        while True:
+                        data_left_to_read = file_size
+                        while data_left_to_read > 0:
                             # read the bytes from the file
                             bytes_read = f.read(BUFFER_SIZE)
                             if not bytes_read:
                                 # file transmitting is done
                                 break
+                            data_left_to_read -= len(bytes_read)
                             conn.sendall(bytes_read)
             except Exception as e:
                 print(e)
@@ -290,12 +292,14 @@ def send_file(s, msg, client_dir, short_id):
     fileloc = fileloc.replace(EMPTY_FOLDER, short_id)
     with open(fileloc, READ_BYTES) as f:
         # msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-        while True:
+        data_left_to_read = file_size
+        while data_left_to_read > 0:
             # read the bytes from the file
             bytes_read = f.read(BUFFER_SIZE)
             if not bytes_read:
                 # file transmitting is done
                 break
+            data_left_to_read -= len(bytes_read)
             s.sendall(bytes_read)
 
 
@@ -511,16 +515,21 @@ while True:
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
-            while True:
+            while data_left_to_read > 0:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     data = connection.recv(data_left_to_read)
+                    if not data:
+                        break
                     print("Writing to file...")
                     f.write(data)
                     f.close()
+                    data_left_to_read -= len(data)
                     break
                 else:
                     data = connection.recv(BIGGEST_SIZE_SOCKET)
                     data_left_to_read -= len(data)
+                    if not data:
+                        break
                     print("Writing...")
                     f.write(data)
             print("Finished writing to file...")

@@ -145,13 +145,16 @@ def send_all_files(path, computer_id, s):
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
-                while True:
+                data_left_to_read = file_size
+                while data_left_to_read > 0:
                     # read the bytes from the file
                     bytes_read = f.read(BUFFER_SIZE)
                     if not bytes_read:
                         # file transmitting is done
                         break
+                    data_left_to_read -= len(bytes_read)
                     s.sendall(bytes_read)
+
     msg = FINISH.encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -267,18 +270,24 @@ def get_changes_from_server(dir_path):
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
-            while True:
+            while data_left_to_read > 0:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     data = s.recv(data_left_to_read)
+                    if not data:
+                        break
                     print("Writing to file...")
                     f.write(data)
                     f.close()
+                    data_left_to_read -= len(data)
                     break
                 else:
                     data = s.recv(BIGGEST_SIZE_SOCKET)
                     data_left_to_read -= len(data)
+                    if not data:
+                        break
                     print("Writing...")
                     f.write(data)
+                print("Finished writing to file...")
 
         elif command == FINISH:
             print("Finished")
@@ -335,12 +344,14 @@ def send_file(s , msg):
     file_size = int(msg.decode(UTF).split(DELIMITER)[2])
     try:
         with open(fileloc, READ_BYTES) as f:
-            while True:
+            data_left_to_read = file_size
+            while data_left_to_read > 0:
                 # read the bytes from the file
                 bytes_read = f.read(BUFFER_SIZE)
                 if not bytes_read:
                     # file transmitting is done
                     break
+                data_left_to_read -= len(bytes_read)
                 s.sendall(bytes_read)
             #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
     except Exception as e:
