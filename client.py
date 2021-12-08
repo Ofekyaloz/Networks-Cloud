@@ -272,6 +272,7 @@ def get_changes_from_server(dir_path):
             data_left_to_read = file_size
             while data_left_to_read > 0:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
+                    time.sleep(0.5)
                     data = s.recv(data_left_to_read)
                     if not data:
                         break
@@ -281,6 +282,7 @@ def get_changes_from_server(dir_path):
                     data_left_to_read -= len(data)
                     break
                 else:
+                    time.sleep(0.5)
                     data = s.recv(BIGGEST_SIZE_SOCKET)
                     data_left_to_read -= len(data)
                     if not data:

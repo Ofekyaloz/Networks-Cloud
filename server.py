@@ -517,6 +517,7 @@ while True:
             data_left_to_read = file_size
             while data_left_to_read > 0:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
+                    time.sleep(0.5)
                     data = connection.recv(data_left_to_read)
                     if not data:
                         break
@@ -526,6 +527,7 @@ while True:
                     data_left_to_read -= len(data)
                     break
                 else:
+                    time.sleep(0.5)
                     data = connection.recv(BIGGEST_SIZE_SOCKET)
                     data_left_to_read -= len(data)
                     if not data:
