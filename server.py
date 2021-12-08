@@ -517,8 +517,10 @@ while True:
             file_size = int(request_parts[2])
             file_path = convert_to_os(request_parts[3])
             client_id = request_parts[4]
+            is_first_hello = "FALSE"
             try:
                 computer_id = request_parts[5]
+                is_first_hello = request_parts[6]
             except Exception as e:
                 computer_id = client_id
                 print(e)
@@ -545,7 +547,7 @@ while True:
             f.write(bytes_read)
             print("Finished writing to file...")
             f.close()
-            if computer_id in client_that_said_hello:
+            if is_first_hello == "FALSE":
                 add_changes(changes, client_id, computer_id, request, dictionary)
             # connection.close()
         elif command == FINISH:

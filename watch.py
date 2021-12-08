@@ -31,7 +31,7 @@ handler.on_modified = on_modified
 handler.on_moved = on_moved
 
 observer = Observer()
-observer.schedule(handler, path="/home/ofek/Desktop/noam", recursive=True)
+observer.schedule(handler, path="/home/ofek/Desktop/temp", recursive=True)
 
 observer.start()
 try:

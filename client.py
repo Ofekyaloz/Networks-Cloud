@@ -141,7 +141,7 @@ def send_all_files(path, computer_id, s):
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
                 file_size = os.path.getsize(fileloc)
-                msg = (DELIMITER.join([SEND_FILE, str(file), str(file_size), str(fileloc), str(client_id), computer_id])).encode(UTF)
+                msg = (DELIMITER.join([SEND_FILE, str(file), str(file_size), str(fileloc), str(client_id), computer_id, "TRUE"])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
                 s.send(msg)
@@ -347,24 +347,28 @@ class FileChangedHandler(FileSystemEventHandler):
 def send_file(s , msg):
     fileloc = msg.decode(UTF).split(DELIMITER)[3]
     file_size = int(msg.decode(UTF).split(DELIMITER)[2])
-    with open(fileloc, READ_BYTES) as f:
-        #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
-        i = 0
-        sum = file_size
-        diff = STANDARD_SIZE
-        if file_size > BIGGEST_SIZE_SOCKET:
-            diff = BIGGEST_SIZE_SOCKET
-        while (i + diff) < file_size:
-            # read the bytes from the file
-            bytes_read = f.read(diff)
-            if not bytes_read:
-                # file transmitting is done
-                break
+    try:
+        with open(fileloc, READ_BYTES) as f:
+            #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
+            i = 0
+            sum = file_size
+            diff = STANDARD_SIZE
+            if file_size > BIGGEST_SIZE_SOCKET:
+                diff = BIGGEST_SIZE_SOCKET
+            while (i + diff) < file_size:
+                # read the bytes from the file
+                bytes_read = f.read(diff)
+                if not bytes_read:
+                    # file transmitting is done
+                    break
+                s.send(bytes_read)
+                i += diff
+                sum -= diff
+            bytes_read = f.read(sum)
             s.send(bytes_read)
-            i += diff
-            sum -= diff
-        bytes_read = f.read(sum)
-        s.send(bytes_read)
+    except Exception as e:
+        pass
+
 def on_created(event):
     print(f"created {event.src_path}")
     if os.sep == LINUX_SEP and (".goutputstream") in str(event.src_path):
@@ -373,7 +377,7 @@ def on_created(event):
         file = os.path.basename(event.src_path)
         #send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
     elif os.path.isdir(event.src_path):
         msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id])).encode(UTF)
     else:
@@ -400,7 +404,7 @@ def on_modified(event):
         return
     size = os.path.getsize(event.src_path)
     msg = (DELIMITER.join([SEND_FILE, str(file), str(size),
-                           str(event.src_path), str(client_id), computer_id])).encode(UTF)
+                           str(event.src_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
     updates_set.add(msg)
 
 # add move alert-moved-folder
@@ -408,11 +412,11 @@ def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     if event.is_directory:
         msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
-    elif (".goutputstream") in str(event.src_path):
+    elif (".goutputstream") in str(event.src_path) and os.sep == LINUX_SEP:
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
         #send_file(s, event.dest_path, file, client_id)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.dest_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
     elif os.path.isfile(event.dest_path):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
     else:
