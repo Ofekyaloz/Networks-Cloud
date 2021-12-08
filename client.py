@@ -1,13 +1,9 @@
-import socket, sys, os, time
-import string
-import random
-
+import socket, sys, os, time, string, random
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler, FileSystemEventHandler
 
 WINDOWS_SEP = "\\"
 LINUX_SEP = "/"
-
 INVALID = -1
 IP_INDEX = 1
 PORT_INDEX = 2
@@ -93,6 +89,7 @@ def arguments_check():
             return INVALID
         i += 1
 
+
 # return the size of a message, 12 chars
 def get_size(msg):
     sum = 0
@@ -124,8 +121,6 @@ else:
     client_id = data.decode(UTF)
 
 
-
-
 # send all the files from a specific path
 def send_all_files(path, computer_id, s):
     # root = paths, dirs = folders, files
@@ -154,7 +149,6 @@ def send_all_files(path, computer_id, s):
                         break
                     data_left_to_read -= len(bytes_read)
                     s.sendall(bytes_read)
-
     msg = FINISH.encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -305,10 +299,6 @@ def get_changes_from_server(dir_path):
             for update in to_remove:
                 updates_set.remove(update)
             updates_from_server = set()
-            #msg = FINISH.encode(UTF)
-            #msg_len = get_size(msg)
-            #s.send(msg_len)
-            #s.send(msg)
             s.close()
             break
 
@@ -331,6 +321,7 @@ else:
     s.send(msg)
     get_changes_from_server(dir_path)
 
+
 # ask changes from the server
 def ask_change(last_visit):
     print("ask change")
@@ -344,6 +335,7 @@ def ask_change(last_visit):
 class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
         print(f'{e.event_type}, {e.src_path}')
+
 
 # send file
 def send_file(s , msg):
@@ -360,9 +352,9 @@ def send_file(s , msg):
                     break
                 data_left_to_read -= len(bytes_read)
                 s.sendall(bytes_read)
-            #msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
     except Exception as e:
         pass
+
 
 def on_created(event):
     print(f"created {event.src_path}")
@@ -370,7 +362,6 @@ def on_created(event):
         return
     if os.path.isfile(event.src_path):
         file = os.path.basename(event.src_path)
-        #send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
         msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
     elif os.path.isdir(event.src_path):
@@ -390,6 +381,7 @@ def on_deleted(event):
     print(msg[:45])
     updates_set.add(msg)
 
+
 def on_modified(event):
     print(f"modified {event.src_path} ")
     file = os.path.basename(event.src_path)
@@ -402,7 +394,7 @@ def on_modified(event):
                            str(event.src_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
     updates_set.add(msg)
 
-# add move alert-moved-folder
+
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
     if event.is_directory:
@@ -410,7 +402,6 @@ def on_moved(event):
     elif (".goutputstream") in str(event.src_path) and os.sep == LINUX_SEP:
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
-        #send_file(s, event.dest_path, file, client_id)
         msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.dest_path), str(client_id), computer_id, "FALSE"])).encode(UTF)
     elif os.path.isfile(event.dest_path):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id])).encode(UTF)
@@ -448,9 +439,6 @@ def send_watch(s, updates_set):
         item = item.decode(UTF)
         if not item.startswith(ALERT_MOVED_FOLDER):
             updated_to_send.append(item.encode())
-    # /temp/ofek/
-    # /temp/ofek/yaloz/noam/example.txt
-    #lst.sort(reverse=True)
 
     for message in updated_to_send:
         msg_len = get_size(message)
@@ -462,6 +450,7 @@ def send_watch(s, updates_set):
     updates_set = set()
     return updates_set
 
+
 def convert_to_os(path):
     if os.sep == LINUX_SEP:
         return path.replace(WINDOWS_SEP, LINUX_SEP)
@@ -469,6 +458,8 @@ def convert_to_os(path):
         return path.replace(LINUX_SEP, WINDOWS_SEP)
 
 try:
+    # loop of: receiving data from the server, set up the watchdog and send to the server updates if exists
+    # go to sleep and repeat
     while True:
         print("awake")
         observer.stop()
