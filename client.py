@@ -124,8 +124,6 @@ else:
     client_id = data.decode(UTF)
 
 
-
-
 # send all the files from a specific path
 def send_all_files(path, computer_id, s):
     # root = paths, dirs = folders, files
