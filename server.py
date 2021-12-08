@@ -520,7 +520,7 @@ while True:
                     break
                 else:
                     data = connection.recv(BIGGEST_SIZE_SOCKET)
-                    data_left_to_read -= BIGGEST_SIZE_SOCKET
+                    data_left_to_read -= len(data)
                     print("Writing...")
                     f.write(data)
             print("Finished writing to file...")

@@ -276,7 +276,7 @@ def get_changes_from_server(dir_path):
                     break
                 else:
                     data = s.recv(BIGGEST_SIZE_SOCKET)
-                    data_left_to_read -= BIGGEST_SIZE_SOCKET
+                    data_left_to_read -= len(data)
                     print("Writing...")
                     f.write(data)
 
