@@ -191,7 +191,7 @@ def get_changes_from_server(dir_path):
             request = request.replace(EMPTY_FOLDER, dir_path)
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
-        print(command)
+        print(request)
         # the server says that a folder was moved.
         updates_from_server.add(request[:-12])
         if command == ALERT_MOVED_FOLDER:
