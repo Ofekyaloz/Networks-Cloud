@@ -236,9 +236,9 @@ def get_changes_from_server(dir_path):
 
         elif command == ALERT_MOVED_FILE:
             # /home/noam
-            old_file_path = os.path.join(convert_path(dir_path, request_parts[1]))
+            old_file_path = os.path.join(convert_path(dir_path), request_parts[1])
             # Acdbhd1348/home/noam
-            new_file_path = os.path.join(convert_path(dir_path, request_parts[2]))
+            new_file_path = os.path.join(convert_path(dir_path), request_parts[2])
             # Acdbhd1348/home/example
             try:
                 os.rename(old_file_path, new_file_path)
