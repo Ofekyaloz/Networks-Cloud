@@ -567,7 +567,7 @@ while True:
             file_size = int(request_parts[2])
             separator = request_parts[7]
             client_id = request_parts[4]
-            file_path = os.path.abs(os.path.join(get_client_id_folder(client_id),
+            file_path = os.path.abspath(os.path.join(get_client_id_folder(client_id),
                                      convert_path(request_parts[3], separator)))
             is_first_hello = "FALSE"
             try:
