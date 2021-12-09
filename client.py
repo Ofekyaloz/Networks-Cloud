@@ -44,12 +44,24 @@ WRITE_BYTES = "wb+"
 SLEEP_INTERVAL = 2
 ID_LENGTH = 12
 EMPTY_STRING = ""
+global dir_path
 global updates_set
 updates_set = set()
+dir_path = ""
 
+def get_other_slash():
+    if os.sep == LINUX_SEP:
+        return WINDOWS_SEP
+    return LINUX_SEP
+
+def convert_path(path):
+    old_slash = get_other_slash()
+    new_slash = os.sep
+    return path.replace(old_slash, new_slash)
 
 def create_folder(folder_path):
     try:
+        folder_path = convert_path(folder_path)
         os.makedirs(folder_path)
         print("created folder " + folder_path)
     except Exception as e:
@@ -130,6 +142,7 @@ def send_all_files(path, computer_id, s):
     for (root, dirs, files) in os.walk(path, topdown=True):
         for folder in dirs:
             folder_loc = os.path.join(root, folder)
+            folder_loc = os.path.relpath(folder_loc, dir_path)
             msg = (DELIMITER.join([SEND_DIR, str(folder_loc), str(client_id), computer_id, os.sep])).encode(UTF)
             msg_len = get_size(msg)
             s.send(msg_len)
@@ -139,6 +152,7 @@ def send_all_files(path, computer_id, s):
             fileloc = os.path.join(root, file)
             with open(fileloc, READ_BYTES) as f:
                 file_size = os.path.getsize(fileloc)
+                fileloc = os.path.relpath(fileloc, dir_path)
                 msg = (DELIMITER.join([SEND_FILE, str(file), str(file_size), str(fileloc), str(client_id), computer_id, "TRUE", os.sep])).encode(UTF)
                 msg_len = get_size(msg)
                 s.send(msg_len)
@@ -183,10 +197,10 @@ def get_changes_from_server(dir_path):
         updates_from_server.add(request[:-12])
         if command == ALERT_MOVED_FOLDER:
             client_dir = client_id[:15]
-            old_folder_path = request_parts[1]
-            old_folder_path = old_folder_path.replace(client_dir, dir_path)
-            new_folder_path = request_parts[2]
-            new_folder_path = new_folder_path.replace(client_dir, dir_path)
+            old_folder_path = convert_path(request_parts[1])
+            old_folder_path = os.path.join(dir_path, old_folder_path)
+            new_folder_path = convert_path(request_parts[2])
+            new_folder_path = os.path.join(dir_path, new_folder_path)
             try:
                 os.rename(old_folder_path, new_folder_path)
             except:
@@ -198,15 +212,15 @@ def get_changes_from_server(dir_path):
                     os.rmdir(os.path.join(root, name_of_folder))
             try:
                 os.rmdir(os.path.abspath(old_folder_path))
-            except:
-                pass
+            except Exception as e:
+                print(e)
 
         elif command == ALERT_DELETED_FILE:
             client_dir = get_client_id_folder(client_id)
             # /home/noam/example
-            path_in_file = request_parts[1]
+            path_in_file = convert_path(request_parts[1])
             # Acdbhd1348/home/noam
-            path_to_delete = path_in_file.replace(client_dir, dir_path)
+            path_to_delete = convert_path(path_in_file.replace(client_dir, dir_path))
             try:
             # the server delete the folder in its side.
                 os.remove(path_to_delete)
@@ -224,22 +238,22 @@ def get_changes_from_server(dir_path):
         elif command == ALERT_MOVED_FILE:
             client_dir = get_client_id_folder(client_id)
             # /home/noam
-            old_file_path = request_parts[1]
+            old_file_path = convert_path(request_parts[1])
             # Acdbhd1348/home/noam
-            old_file_path = old_file_path.replace(client_dir, dir_path)
-            new_file_path = request_parts[2]
+            old_file_path = convert_path(old_file_path.replace(client_dir, dir_path))
+            new_file_path = convert_path(request_parts[2])
             # Acdbhd1348/home/example
-            new_file_path = new_file_path.replace(client_dir, dir_path)
+            new_file_path = convert_path(new_file_path.replace(client_dir, dir_path))
             try:
                 os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
                 if os.sep == WINDOWS_SEP:
                     os.remove(os.path.abspath(old_file_path))
-            except:
-                pass
+            except Exception as e:
+                print(e)
         elif command == ALERT_DELETED_FOLDER:
-            path_in_client = request_parts[1]
+            path_in_client = convert_path(request_parts[1])
             client_dir = get_client_id_folder(client_id)
-            path_to_delete = path_in_client.replace(client_dir, dir_path)
+            path_to_delete = convert_path(path_in_client.replace(client_dir, dir_path))
             # the client delete the folder in its side.
             for root, folders, files in os.walk(path_to_delete, topdown=False):
                 for name_of_folder in files:
@@ -247,24 +261,24 @@ def get_changes_from_server(dir_path):
                 for name_of_folder in folders:
                     try:
                         os.rmdir(os.path.join(root, name_of_folder))
-                    except:
-                        pass
+                    except Exception as e:
+                        print(e)
             try:
                 os.rmdir(os.path.abspath(path_to_delete))
-            except:
+            except Exception as e:
                 print("path doesnt exists")
                 pass
         if command == SEND_DIR or command == CREATE_DIR:
-            folder_path = request_parts[1]
-            folder_path = folder_path.replace(client_id[0:CLIENT_SHORT_ID_LENGTH], dir_path)
+            folder_path = convert_path(request_parts[1])
+            folder_path = convert_path(folder_path.replace(client_id[0:CLIENT_SHORT_ID_LENGTH], dir_path))
             create_folder(folder_path)
 
         elif command == SEND_FILE:
             file_name = request_parts[1]
             file_size = int(request_parts[2])
-            file_path = request_parts[3]
-            file_path = file_path.replace(client_id[0:15], dir_path)
-            folder = file_path.replace(file_name, "")
+            file_path = convert_path(request_parts[3])
+            file_path = convert_path(file_path.replace(client_id[0:15], dir_path))
+            folder = convert_path(file_path.replace(file_name, ""))
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
@@ -356,7 +370,7 @@ def send_file(s , msg):
                 data_left_to_read -= len(bytes_read)
                 s.sendall(bytes_read)
     except Exception as e:
-        pass
+        print(e)
 
 def on_created(event):
     print(f"created {event.src_path}")
@@ -364,11 +378,14 @@ def on_created(event):
         return
     if os.path.isfile(event.src_path):
         file = os.path.basename(event.src_path)
+        file = file.replace(dir_path, "")
+        file_path = os.path.relpath(event.src_path, dir_path)
         #send_file(s, event.src_path, file, client_id)
         size = os.path.getsize(event.src_path)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.src_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), file_path, str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     elif os.path.isdir(event.src_path):
-        msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
+        folder = os.path.relpath(event.src_path, dir_path)
+        msg = (DELIMITER.join([CREATE_DIR, folder, str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
     print(msg[:45])
@@ -377,10 +394,11 @@ def on_created(event):
 
 def on_deleted(event):
     print(f"deleted {event.src_path}")
+    file_path = os.path.relpath(event.src_path, dir_path)
     if event.is_directory:
-        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_DELETED_FOLDER, file_path, str(client_id), computer_id, os.sep])).encode(UTF)
     else:
-        msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_DELETED_FILE, file_path, str(client_id), computer_id, os.sep])).encode(UTF)
     print(msg[:45])
     updates_set.add(msg)
 
@@ -392,22 +410,26 @@ def on_modified(event):
     if file.startswith(".") and os.sep == LINUX_SEP:
         return
     size = os.path.getsize(event.src_path)
+    file_path = os.path.relpath(event.src_path, dir_path)
     msg = (DELIMITER.join([SEND_FILE, str(file), str(size),
-                           str(event.src_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
+                           file_path, str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     updates_set.add(msg)
 
 # add move alert-moved-folder
 def on_moved(event):
     print(f"moved {event.src_path} to {event.dest_path}")
+    src_path = os.path.relpath(event.src_path, dir_path)
+    dest_path = os.path.relpath(event.dest_path, dir_path)
+
     if event.is_directory:
-        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id, os.sep])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FOLDER, src_path, dest_path, str(client_id), computer_id, os.sep])).encode(UTF)
     elif (".goutputstream") in str(event.src_path) and os.sep == LINUX_SEP:
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
         #send_file(s, event.dest_path, file, client_id)
-        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.dest_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
+        msg = (DELIMITER.join([SEND_FILE, str(file), str(size), dest_path, str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     elif os.path.isfile(event.dest_path):
-        msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id, os.sep])).encode(UTF)
+        msg = (DELIMITER.join([ALERT_MOVED_FILE, src_path, dest_path, str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
     print(msg[:45])
