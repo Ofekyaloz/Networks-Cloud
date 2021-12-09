@@ -1,13 +1,14 @@
-import socket, sys, os, time
+import socket
+import sys
+import os
+import time
 import string
 import random
-
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler, FileSystemEventHandler
 
 WINDOWS_SEP = "\\"
 LINUX_SEP = "/"
-
 INVALID = -1
 IP_INDEX = 1
 PORT_INDEX = 2
@@ -36,7 +37,6 @@ ALERT_DELETED_FOLDER = "alert-deleted-folder"
 ALERT_MOVED_FOLDER = "alert-moved-folder"
 ALERT_DELETED_FILE = "alert-deleted-file"
 ALERT_MOVED_FILE = "alert-moved-file"
-SEND_DIR = "send-dir"
 CREATE_DIR = "create-dir"
 SEND_FILE = "send-file"
 ASK_CHANGED = "ask-changed"
@@ -48,15 +48,18 @@ global updates_set
 updates_set = set()
 
 
+# Create folders
 def create_folder(folder_path):
     try:
         os.makedirs(folder_path)
-        print("created folder " + folder_path)
     except Exception as e:
-        print("folder " + folder_path + " already exists.")
+        pass
 
+
+# return short client_id
 def get_client_id_folder(client_id):
     return client_id[:CLIENT_SHORT_ID_LENGTH]
+
 
 # function that checks validity of the parameters.
 def arguments_check():
@@ -68,7 +71,6 @@ def arguments_check():
     if not port.isdigit():
         print(f'Error: invalid port: {port}')
         return INVALID
-
     time_interval = sys.argv[TIME_INTERVAL_INDEX]
     if not time_interval.isdigit():
         print(f'Error: time interval: {sys.argv[TIME_INTERVAL_INDEX]} ,is not a number')
@@ -92,6 +94,7 @@ def arguments_check():
             print(f'IP: {ip} is not valid')
             return INVALID
         i += 1
+
 
 # return the size of a message, 12 chars
 def get_size(msg):
@@ -120,7 +123,6 @@ else:
     s.send(('8'.zfill(12)).encode(UTF))
     s.send(REGISTER.encode(UTF))
     data = s.recv(132)
-    print("Server sent: ", data)
     client_id = data.decode(UTF)
 
 
@@ -162,7 +164,6 @@ def send_all_files(path, computer_id, s):
 
 # receive changes from the server
 def get_changes_from_server(dir_path):
-    updates_from_server = set()
     while True:
         request = s.recv(MESSAGE_SIZE_HEADER_LENGTH)
         request = request.decode(UTF, IGNORE)
@@ -178,9 +179,8 @@ def get_changes_from_server(dir_path):
             request = request.replace(EMPTY_FOLDER, dir_path)
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
-        print(command)
+
         # the server says that a folder was moved.
-        updates_from_server.add(request[:-12])
         if command == ALERT_MOVED_FOLDER:
             client_dir = client_id[:15]
             old_folder_path = request_parts[1]
@@ -201,11 +201,10 @@ def get_changes_from_server(dir_path):
             except:
                 pass
 
+        # the server modify that a file was deleted.
         elif command == ALERT_DELETED_FILE:
             client_dir = get_client_id_folder(client_id)
-            # /home/noam/example
             path_in_file = request_parts[1]
-            # Acdbhd1348/home/noam
             path_to_delete = path_in_file.replace(client_dir, dir_path)
             try:
             # the server delete the folder in its side.
@@ -219,16 +218,14 @@ def get_changes_from_server(dir_path):
                             os.rmdir(os.path.join(root, name_of_file))
                     os.rmdir(path_to_delete)
                 except Exception as e:
-                    print(e)
+                    pass
 
+        # the server modify about replace path/name of a file.
         elif command == ALERT_MOVED_FILE:
             client_dir = get_client_id_folder(client_id)
-            # /home/noam
             old_file_path = request_parts[1]
-            # Acdbhd1348/home/noam
             old_file_path = old_file_path.replace(client_dir, dir_path)
             new_file_path = request_parts[2]
-            # Acdbhd1348/home/example
             new_file_path = new_file_path.replace(client_dir, dir_path)
             try:
                 os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
@@ -236,6 +233,8 @@ def get_changes_from_server(dir_path):
                     os.remove(os.path.abspath(old_file_path))
             except:
                 pass
+
+        # the server modify about delete folder.
         elif command == ALERT_DELETED_FOLDER:
             path_in_client = request_parts[1]
             client_dir = get_client_id_folder(client_id)
@@ -252,13 +251,15 @@ def get_changes_from_server(dir_path):
             try:
                 os.rmdir(os.path.abspath(path_to_delete))
             except:
-                print("path doesnt exists")
                 pass
-        if command == SEND_DIR or command == CREATE_DIR:
+
+        # the server modify about create folder.
+        elif command == SEND_DIR or command == CREATE_DIR:
             folder_path = request_parts[1]
             folder_path = folder_path.replace(client_id[0:CLIENT_SHORT_ID_LENGTH], dir_path)
             create_folder(folder_path)
 
+        # the server modify about create file.
         elif command == SEND_FILE:
             file_name = request_parts[1]
             file_size = int(request_parts[2])
@@ -268,16 +269,13 @@ def get_changes_from_server(dir_path):
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
-            read_from_file = 0
             while data_left_to_read > 0:
                 time.sleep(0.4)
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     time.sleep(0.5)
                     data = s.recv(data_left_to_read)
-                    read_from_file += len(data)
                     if not data:
                         break
-                    print("Writing to file...")
                     f.write(data)
                     f.close()
                     data_left_to_read -= len(data)
@@ -285,34 +283,23 @@ def get_changes_from_server(dir_path):
                 else:
                     time.sleep(0.5)
                     data = s.recv(BIGGEST_SIZE_SOCKET)
-                    read_from_file += len(data)
                     data_left_to_read -= len(data)
                     if not data:
                         break
-                    print("Writing...")
                     f.write(data)
-                print("read: ", read_from_file, " left: ", data_left_to_read)
-                print(read_from_file / file_size)
-            print("Finished writing to file...")
 
+        # the server done with the updates.
         elif command == FINISH:
-            print("Finished")
-            to_remove = []
-            for update in updates_set:
-                if update.decode(UTF)[:-12] in updates_from_server:
-                        to_remove.append(update)
-            for update in to_remove:
-                updates_set.remove(update)
-            updates_from_server = set()
             s.close()
             break
 
         time.sleep(SLEEP_INTERVAL)
 
+
 computer_id = EMPTY_STRING.join(
                 random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in range(ID_LENGTH))
-print("computer id: ", computer_id)
 last_visit = time.time()
+# if new client, send to the server all the files, else ask from the sever the files.
 if new_client:
     msg = (DELIMITER.join([HELLO, str(client_id), dir_path, "False", computer_id, os.sep])).encode(UTF)
     msg_len = get_size(msg)
@@ -326,9 +313,9 @@ else:
     s.send(msg)
     get_changes_from_server(dir_path)
 
+
 # ask changes from the server
 def ask_change(last_visit):
-    print("ask change")
     msg = (DELIMITER.join([ASK_CHANGED, str(last_visit), str(client_id), computer_id, os.sep])).encode(UTF)
     msg_len = get_size(msg)
     s.send(msg_len)
@@ -338,9 +325,10 @@ def ask_change(last_visit):
 
 class FileChangedHandler(FileSystemEventHandler):
     def alert_file_modified(self, e):
-        print(f'{e.event_type}, {e.src_path}')
+        pass
 
-# send file
+
+# send a file
 def send_file(s , msg):
     fileloc = msg.decode(UTF).split(DELIMITER)[3]
     file_size = int(msg.decode(UTF).split(DELIMITER)[2])
@@ -358,8 +346,8 @@ def send_file(s , msg):
     except Exception as e:
         pass
 
+
 def on_created(event):
-    print(f"created {event.src_path}")
     if os.sep == LINUX_SEP and (".goutputstream") in str(event.src_path):
         return
     if os.path.isfile(event.src_path):
@@ -371,21 +359,18 @@ def on_created(event):
         msg = (DELIMITER.join([CREATE_DIR, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
-    print(msg[:45])
     updates_set.add(msg)
 
 
 def on_deleted(event):
-    print(f"deleted {event.src_path}")
     if event.is_directory:
         msg = (DELIMITER.join([ALERT_DELETED_FOLDER, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         msg = (DELIMITER.join([ALERT_DELETED_FILE, str(event.src_path), str(client_id), computer_id, os.sep])).encode(UTF)
-    print(msg[:45])
     updates_set.add(msg)
 
+
 def on_modified(event):
-    print(f"modified {event.src_path} ")
     file = os.path.basename(event.src_path)
     if os.path.isdir(file) or (event.is_directory):
         return
@@ -396,21 +381,19 @@ def on_modified(event):
                            str(event.src_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     updates_set.add(msg)
 
+
 # add move alert-moved-folder
 def on_moved(event):
-    print(f"moved {event.src_path} to {event.dest_path}")
     if event.is_directory:
         msg = (DELIMITER.join([ALERT_MOVED_FOLDER, str(event.src_path), str(event.dest_path), str(client_id), computer_id, os.sep])).encode(UTF)
     elif (".goutputstream") in str(event.src_path) and os.sep == LINUX_SEP:
         size = os.path.getsize(event.dest_path)
         file = os.path.basename(event.dest_path)
-        #send_file(s, event.dest_path, file, client_id)
         msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(event.dest_path), str(client_id), computer_id, "FALSE", os.sep])).encode(UTF)
     elif os.path.isfile(event.dest_path):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, str(event.src_path), str(event.dest_path), str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
-    print(msg[:45])
     updates_set.add(msg)
 
 
@@ -424,12 +407,10 @@ observer = Observer()
 observer.schedule(handler, path=dir_path, recursive=True)
 
 observer.start()
-print("sleep")
 time.sleep(time_interval)
 
 
 def send_watch(s, updates_set):
-    print("send_watch")
     lst = list(updates_set)
     updated_to_send = []
     for msg in lst:
@@ -442,9 +423,6 @@ def send_watch(s, updates_set):
         item = item.decode(UTF)
         if not item.startswith(ALERT_MOVED_FOLDER):
             updated_to_send.append(item.encode())
-    # /temp/ofek/
-    # /temp/ofek/yaloz/noam/example.txt
-    #lst.sort(reverse=True)
 
     for message in updated_to_send:
         msg_len = get_size(message)
@@ -452,10 +430,11 @@ def send_watch(s, updates_set):
         s.send(message)
         if (message.decode(UTF)).startswith(SEND_FILE):
             send_file(s, message)
-        print("watch send: ", message[:45])
     updates_set = set()
     return updates_set
 
+
+# convert to the right os.
 def convert_to_os(path):
     if os.sep == LINUX_SEP:
         return path.replace(WINDOWS_SEP, LINUX_SEP)
@@ -464,7 +443,6 @@ def convert_to_os(path):
 
 try:
     while True:
-        print("awake")
         observer.stop()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
@@ -475,17 +453,13 @@ try:
         observer.start()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
-        print(updates_set)
         updates_set = send_watch(s, updates_set)
-        print("sleep")
         msg = FINISH.encode(UTF)
         msg_len = get_size(msg)
         s.send(msg_len)
         s.send(msg)
         s.close()
         time.sleep(time_interval)
-
-
 except KeyboardInterrupt:
     observer.stop()
     observer.join()
