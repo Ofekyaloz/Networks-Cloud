@@ -98,7 +98,6 @@ except Exception as e:
     print("This address is not valid.")
     print("An invalid port was entered.");
 
-print("Listen amount", LISTEN_AMOUNT)
 server.listen(LISTEN_AMOUNT)
 
 # the dictioanry maps
