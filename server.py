@@ -482,7 +482,7 @@ while True:
             client_id = request_parts[2]
             # /home/noam
             # /home/noam/example
-            path_in_client = os.path.join(get_client_id_folder(client_id),
+            path_to_delete = os.path.join(get_client_id_folder(client_id),
                                           convert_path(request_parts[1], separator))
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
