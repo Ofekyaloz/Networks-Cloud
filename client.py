@@ -270,6 +270,7 @@ def get_changes_from_server(dir_path):
             data_left_to_read = file_size
             read_from_file = 0
             while data_left_to_read > 0:
+                time.sleep(0.4)
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     time.sleep(0.5)
                     data = s.recv(data_left_to_read)
@@ -292,7 +293,7 @@ def get_changes_from_server(dir_path):
                     f.write(data)
                 print("read: ", read_from_file, " left: ", data_left_to_read)
                 print(read_from_file / file_size)
-                print("Finished writing to file...")
+            print("Finished writing to file...")
 
         elif command == FINISH:
             print("Finished")

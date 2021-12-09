@@ -589,7 +589,7 @@ while True:
                 if data_left_to_read < BIGGEST_SIZE_SOCKET:
                     time.sleep(0.5)
                     data = connection.recv(data_left_to_read)
-                    read_from_file = len(data)
+                    read_from_file += len(data)
                     if not data:
                         break
                     print("Writing to file...")
