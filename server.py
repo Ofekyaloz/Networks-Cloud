@@ -93,7 +93,6 @@ HOST_IP = ''
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    print("bind to ", HOST_IP, int(sys.argv[PORT_INDEX]))
     server.bind((HOST_IP, int(sys.argv[PORT_INDEX])))
 except Exception as e:
     print("This address is not valid.")
@@ -147,7 +146,6 @@ def get_client_id_folder(client_id):
 def create_folder(folder_path):
     try:
         os.makedirs(folder_path)
-        print("created folder " + folder_path)
     except Exception as e:
         # if the folder is exists then it will print so.
         pass
@@ -315,12 +313,10 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
         relevant_changes = value[computer_id]
         updated = []
         for request, time_was_changed in relevant_changes:
-            print("updated client: ", request)
-            print("computer id: ", computer_id)
             request = adjust_request_to_os(request, computer_id)
             connection.send(get_size(request.encode()))
             connection.send(request.encode())
-            if request.startswith("send-file"):
+            if request.startswith(SEND_FILE):
                 send_file(connection, request.encode(), client_folder, short_id)
             updated.append(request)
 
@@ -358,10 +354,8 @@ client_that_said_hello = []
 while True:
     try:
         connection, addr = server.accept()
-        print('connected in address:', addr)
     except Exception as e:
         pass
-    print("waiting...")
     counter = 0
     request = ""
     # until finished was not receive, handle the client.
@@ -376,8 +370,6 @@ while True:
             request = connection.recv(length_of_packet).decode(UTF, IGNORE)
         except Exception as e:
             pass
-        if request != "":
-            print(request)
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
         # if it's the first time of the client, then it gets ID.
@@ -385,7 +377,6 @@ while True:
             client_id = EMPTY_STRING.join(
                 random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in
                 range(ID_LENGTH))
-            print(client_id)
             connection.send(client_id.encode())
             # connection.close()
         # if the client tells about moving folder, the server keeps it
@@ -577,7 +568,6 @@ while True:
                     read_from_file += len(data)
                     if not data:
                         break
-                    print("Writing to file...")
                     f.write(data)
                     f.close()
                     data_left_to_read -= len(data)
@@ -589,16 +579,10 @@ while True:
                     read_from_file += len(data)
                     if not data:
                         break
-                    print("Writing...")
                     f.write(data)
-                print("read: ", read_from_file, " left: ", data_left_to_read)
-                print(read_from_file / file_size)
-                print("Finished writing to file...")
-            print("Finished writing to file...")
             if is_first_hello == "FALSE":
                 add_changes(changes, client_id, computer_id, request, dictionary)
         elif command == FINISH:
             connection.close()
-            print("Finished and went to wait to other clients.")
             break
         time.sleep(SLEEP_INTERVAL)
