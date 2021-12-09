@@ -5,6 +5,7 @@ import string
 import sys
 import time
 
+computer_to_os = {}
 WINDOWS_SEP = "\\"
 LINUX_SEP = "/"
 
@@ -12,7 +13,11 @@ LINUX_SEP = "/"
 # value : computer_id
 # value_of_value: changes of this computer id
 changes = {}
-computer_to_os = {}
+
+def get_other_slash():
+    if os.sep == LINUX_SEP:
+        return WINDOWS_SEP
+    return LINUX_SEP
 
 BUFFER_SIZE = 1024
 MESSAGE_LENGTH_HEADER_SIZE = 12
@@ -52,6 +57,14 @@ SEND_FILE = "send-file"
 def convert_path(path, old_slash):
     new_slash = os.sep
     return path.replace(old_slash, new_slash)
+
+def adjust_path(path, old_slash, new_slash):
+    return path.replace(old_slash, new_slash)
+
+def get_computer_os_by_id(computer_id):
+    if not (computer_id in computer_to_os.keys()):
+        return LINUX_SEP
+    return computer_to_os[computer_id]
 
 def convert_to_os(path):
     if os.sep == LINUX_SEP:
@@ -171,6 +184,7 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
             except Exception as e:
                 print(e)
             try:
+                file_location = convert_path(file_location, get_other_slash())
                 with open(file_location, READ_BYTES) as f:
                     # opens a file and sends all of it.
                     size = os.path.getsize(file_location)
@@ -254,14 +268,6 @@ def delete_change_by_request(changes, client_id, computer_id, request):
     if to_delete is not None:
         changes[client_id][computer_id].remove(to_delete)
 
-def adjust_path(path, old_slash, new_slash):
-    return path.replace(old_slash, new_slash)
-
-def get_computer_os_by_id(computer_id):
-    if not (computer_id in computer_to_os.keys()):
-        return LINUX_SEP
-    return computer_to_os[computer_id]
-
 def adjust_request_to_os(request, computer_id):
     request_parts = request.split(DELIMITER)
     command = request_parts[0]
@@ -335,6 +341,7 @@ def send_file(s, msg, client_dir, short_id):
     fileloc = msg.decode(UTF).split("@@@")[3]
     fileloc = fileloc.replace(client_dir, short_id)
     fileloc = fileloc.replace(EMPTY_FOLDER, short_id)
+    fileloc = convert_path(fileloc, get_other_slash())
     with open(fileloc, READ_BYTES) as f:
         # msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
         data_left_to_read = file_size
@@ -574,6 +581,7 @@ while True:
             file_path = file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
             folder = file_path.replace(file_name, EMPTY_STRING)
             create_folder(folder)
+            file_path = convert_path(file_path, get_other_slash())
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
             read_from_file = 0
