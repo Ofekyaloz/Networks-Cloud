@@ -571,9 +571,7 @@ while True:
                 computer_id = client_id
                 print(e)
             folder = file_path.replace(file_name, EMPTY_STRING)
-            folder = os.path.join(get_client_id_folder(client_id), folder)
             create_folder(folder)
-            file_path = convert_path(file_path, get_other_slash())
             f = open(file_path, WRITE_BYTES)
             data_left_to_read = file_size
             read_from_file = 0
