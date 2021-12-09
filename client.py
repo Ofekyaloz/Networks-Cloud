@@ -217,7 +217,7 @@ def get_changes_from_server(dir_path):
         elif command == ALERT_DELETED_FILE:
             client_dir = get_client_id_folder(client_id)
             # /home/noam/example
-            path_in_file = os.path.join(convert_path(dir_path, request_parts[1]))
+            path_in_file = os.path.join(convert_path(dir_path), request_parts[1])
             # Acdbhd1348/home/noam
             path_to_delete = convert_path(path_in_file)
             try:
