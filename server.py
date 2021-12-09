@@ -408,13 +408,15 @@ while True:
             # /home/noam
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            old_folder_path = convert_path(request_parts[1], separator)
+            old_folder_path = os.path.join(get_client_id_folder(client_id),
+                                           convert_path(request_parts[1], separator))
             # Acdbhd1348/home/noam
-            new_folder_path = convert_path(request_parts[2], separator)
+            new_folder_path = os.path.join(get_client_id_folder(client_id),
+                                           convert_path(request_parts[2], separator))
 
             # Acdbhd1348/home/example
             try:
-                os.rename(os.path.abspath(old_folder_path), os.path.abspath(new_folder_path))
+                os.rename(old_folder_path, new_folder_path)
             except Exception as e:
                 print(e)
             # connection.close()
@@ -428,12 +430,14 @@ while True:
             # /home/noam
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
-            old_file_path = convert_path(request_parts[1], separator)
+            old_file_path = os.path.join(get_client_id_folder(client_id),
+                                         convert_path(request_parts[1], separator))
             # Acdbhd1348/home/noam
-            new_file_path = convert_path(request_parts[2], separator)
+            new_file_path = os.path.join(get_client_id_folder(client_id),
+                                         convert_path(request_parts[2], separator))
             # Acdbhd1348/home/example
             try:
-                os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
+                os.rename(old_file_path, new_file_path)
             except Exception as e:
                 print(e)
             # connection.close()
@@ -447,8 +451,8 @@ while True:
             client_id = request_parts[2]
             # /home/noam
             # /home/noam/example
-            path_to_delete = convert_path(request_parts[1], separator)
-            path_to_delete = os.path.abspath(path_to_delete)
+            path_to_delete = os.path.join(get_client_id_folder(client_id),
+                convert_path(request_parts[1], separator))
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
@@ -475,8 +479,8 @@ while True:
             client_id = request_parts[2]
             # /home/noam
             # /home/noam/example
-            path_in_client = convert_path(request_parts[1], separator)
-            path_to_delete = os.path.abspath(path_in_client)
+            path_in_client = os.path.join(get_client_id_folder(client_id),
+                                          convert_path(request_parts[1], separator))
             # Acdbhd1348
             client_dir = get_client_id_folder(client_id)
             # Acdbhd1348/home/noam
