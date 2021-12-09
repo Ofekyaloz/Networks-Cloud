@@ -182,6 +182,8 @@ def get_client_id_folder(client_id):
 # create a folder on the server side.
 def create_folder(folder_path):
     try:
+        if not os.path.isabs(folder_path):
+            folder_path = os.path.abspath(folder_path)
         os.makedirs(folder_path)
         print("created folder " + folder_path)
     except Exception as e:
@@ -416,7 +418,8 @@ while True:
 
             # Acdbhd1348/home/example
             try:
-                os.rename(old_folder_path, new_folder_path)
+                os.rename(os.path.abspath(old_folder_path),
+                          os.path.abspath(new_folder_path))
             except Exception as e:
                 print(e)
             # connection.close()
@@ -437,7 +440,7 @@ while True:
                                          convert_path(request_parts[2], separator))
             # Acdbhd1348/home/example
             try:
-                os.rename(old_file_path, new_file_path)
+                os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
             except Exception as e:
                 print(e)
             # connection.close()
@@ -458,7 +461,7 @@ while True:
             # Acdbhd1348/home/noam
             # the server delete the folder in its side.
             try:
-                os.remove(path_to_delete)
+                os.remove(os.path.abspath(path_to_delete))
             except:
                 try:
                     for root, folders, files in os.walk(path_to_delete, topdown=False):
@@ -486,7 +489,7 @@ while True:
             # Acdbhd1348/home/noam
             should_do_for_recursive = True
             if (os.path.isfile(path_to_delete)):
-                os.remove(path_to_delete)
+                os.remove(os.path.abspath(path_to_delete))
                 request.replace("folder", "file")
                 add_changes(changes, client_id, client_id, request, dictionary)
                 should_do_for_recursive = False
@@ -553,7 +556,7 @@ while True:
             folder_path = convert_path(request_parts[1], separator)
             client_id = request_parts[2]
             # the server creates directory as the client told him.
-            folder_path = os.path.join(get_client_id_folder(client_id), folder_path)
+            folder_path = os.path.abspath(os.path.join(get_client_id_folder(client_id), folder_path))
             create_folder(folder_path)
             if command == CREATE_DIR:
                 add_changes(changes, client_id, computer_id, request, dictionary)
@@ -564,8 +567,8 @@ while True:
             file_size = int(request_parts[2])
             separator = request_parts[7]
             client_id = request_parts[4]
-            file_path = os.path.join(get_client_id_folder(client_id),
-                                     convert_path(request_parts[3], separator))
+            file_path = os.path.abs(os.path.join(get_client_id_folder(client_id),
+                                     convert_path(request_parts[3], separator)))
             is_first_hello = "FALSE"
             try:
                 computer_id = request_parts[5]
