@@ -270,7 +270,7 @@ def get_changes_from_server(dir_path):
                 pass
         if command == SEND_DIR or command == CREATE_DIR:
             folder_path = convert_path(request_parts[1])
-            folder_path = convert_path(folder_path.replace(client_id[0:CLIENT_SHORT_ID_LENGTH], dir_path))
+            folder_path = os.path.abspath(folder_path)
             create_folder(folder_path)
 
         elif command == SEND_FILE:
