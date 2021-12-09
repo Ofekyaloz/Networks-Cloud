@@ -380,7 +380,7 @@ def on_created(event):
         msg = (DELIMITER.join([CREATE_DIR, folder, str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
-    print(msg[:45])
+    print(msg)
     updates_set.add(msg)
 
 
@@ -391,7 +391,7 @@ def on_deleted(event):
         msg = (DELIMITER.join([ALERT_DELETED_FOLDER, file_path, str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         msg = (DELIMITER.join([ALERT_DELETED_FILE, file_path, str(client_id), computer_id, os.sep])).encode(UTF)
-    print(msg[:45])
+    print(msg)
     updates_set.add(msg)
 
 def on_modified(event):
@@ -424,7 +424,7 @@ def on_moved(event):
         msg = (DELIMITER.join([ALERT_MOVED_FILE, src_path, dest_path, str(client_id), computer_id, os.sep])).encode(UTF)
     else:
         return
-    print(msg[:45])
+    print(msg)
     updates_set.add(msg)
 
 
@@ -466,7 +466,7 @@ def send_watch(s, updates_set):
         s.send(message)
         if (message.decode(UTF)).startswith(SEND_FILE):
             send_file(s, message)
-        print("watch send: ", message[:45])
+        print("watch send: ", message)
     updates_set = set()
     return updates_set
 
