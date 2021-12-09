@@ -14,6 +14,9 @@ LINUX_SEP = "/"
 # value_of_value: changes of this computer id
 changes = {}
 
+def get_client_id_folder(client_id):
+    return os.path.abspath(client_id[:CLIENT_SHORT_ID_LENGTH])
+
 def get_other_slash():
     if os.sep == LINUX_SEP:
         return WINDOWS_SEP
@@ -546,6 +549,7 @@ while True:
             folder_path = convert_path(request_parts[1], separator)
             client_id = request_parts[2]
             # the server creates directory as the client told him.
+            folder_path = os.path.join(get_client_id_folder(client_id), folder_path)
             create_folder(folder_path)
             if command == CREATE_DIR:
                 add_changes(changes, client_id, computer_id, request, dictionary)
@@ -566,6 +570,7 @@ while True:
                 computer_id = client_id
                 print(e)
             folder = file_path.replace(file_name, EMPTY_STRING)
+            folder = os.path.join(get_client_id_folder(client_id), folder)
             create_folder(folder)
             file_path = convert_path(file_path, get_other_slash())
             f = open(file_path, WRITE_BYTES)
