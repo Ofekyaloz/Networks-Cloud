@@ -73,7 +73,7 @@ def convert_to_os(path):
         return path.replace(LINUX_SEP, WINDOWS_SEP)
 
 
-# gets id of client, and dictioanry that maps
+# gets id of client, and dictionary that maps
 # between id to folder, and returns the dir path
 # of the folder. for example, /home/Ofek1.
 def get_folder_by_id(dictionary, id, computer_id):
@@ -93,10 +93,9 @@ HOST_IP = ''
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    print("bind to ", HOST_IP, int(sys.argv[PORT_INDEX]))
     server.bind((HOST_IP, int(sys.argv[PORT_INDEX])))
 except Exception as e:
-    print(e)
+    print("This address is not valid.")
     print("An invalid port was entered.");
 
 print("Listen amount", LISTEN_AMOUNT)
@@ -131,7 +130,6 @@ def get_size(msg):
     sum = 0
     # goes over the message and counts the letters
     if msg is int:
-        print("*******" + msg + "******")
         msg = str(msg)
     for i in msg:
         sum += 1
@@ -148,10 +146,9 @@ def get_client_id_folder(client_id):
 def create_folder(folder_path):
     try:
         os.makedirs(folder_path)
-        print("created folder " + folder_path)
     except Exception as e:
         # if the folder is exists then it will print so.
-        print("folder " + folder_path + " already exists.")
+        pass
 
 
 # sends all folders and files in given folder.
@@ -176,13 +173,13 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                     conn.send(msg_len)
                     conn.send(msg)
                 except Exception as e:
-                    print(e)
+                    pass
         # goes over all the file and sends them.
         for file in files:
             try:
                 file_location = os.path.join(root, file)
             except Exception as e:
-                print(e)
+                pass
             try:
                 file_location = convert_path(file_location, get_other_slash())
                 with open(file_location, READ_BYTES) as f:
@@ -205,7 +202,7 @@ def send_all_folder(client_id_folder, conn, get_only_modified=False,
                             data_left_to_read -= len(bytes_read)
                             conn.sendall(bytes_read)
             except Exception as e:
-                print(e)
+                pass
     # when it finishes it says it to the client, so it will know.
     msg = FINISH.encode(UTF)
     sum = get_size(msg)
@@ -314,15 +311,12 @@ def send_important_changes(dictionary, client_id, changes, my_last_update_time, 
         if computer_id not in changes[short_id]:
             changes[short_id][computer_id] = []
         relevant_changes = value[computer_id]
-        # relevant_changes = order(relevant_changes)
         updated = []
         for request, time_was_changed in relevant_changes:
-            print("updated client: ", request)
-            print("computer id: ", computer_id)
             request = adjust_request_to_os(request, computer_id)
             connection.send(get_size(request.encode()))
             connection.send(request.encode())
-            if request.startswith("send-file"):
+            if request.startswith(SEND_FILE):
                 send_file(connection, request.encode(), client_folder, short_id)
             updated.append(request)
 
@@ -343,7 +337,6 @@ def send_file(s, msg, client_dir, short_id):
     fileloc = fileloc.replace(EMPTY_FOLDER, short_id)
     fileloc = convert_path(fileloc, get_other_slash())
     with open(fileloc, READ_BYTES) as f:
-        # msg = (DELIMITER.join([SEND_FILE, str(file), str(size), str(fileloc), str(client_id), computer_id])).encode(UTF)
         data_left_to_read = file_size
         while data_left_to_read > 0:
             # read the bytes from the file
@@ -361,10 +354,8 @@ client_that_said_hello = []
 while True:
     try:
         connection, addr = server.accept()
-        print('connected in address:', addr)
     except Exception as e:
-        print(e)
-    print("waiting...")
+        pass
     counter = 0
     request = ""
     # until finished was not receive, handle the client.
@@ -374,15 +365,11 @@ while True:
         try:
             length_of_packet = int(request)
         except Exception as e:
-            # print(e)
-            # raise e
             length_of_packet = BUFFER_SIZE
         try:
             request = connection.recv(length_of_packet).decode(UTF, IGNORE)
         except Exception as e:
-            print(e)
-        if request != "":
-            print(request)
+            pass
         request_parts = request.split(DELIMITER)
         command = request_parts[0]
         # if it's the first time of the client, then it gets ID.
@@ -390,7 +377,6 @@ while True:
             client_id = EMPTY_STRING.join(
                 random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in
                 range(ID_LENGTH))
-            print(client_id)
             connection.send(client_id.encode())
             # connection.close()
         # if the client tells about moving folder, the server keeps it
@@ -418,8 +404,6 @@ while True:
                 os.rename(os.path.abspath(old_folder_path), os.path.abspath(new_folder_path))
             except:
                 pass
-            # connection.close()
-            # connection.close()
         elif command == ALERT_MOVED_FILE:
             separator = request_parts[5]
             computer_id = request_parts[4]
@@ -440,7 +424,6 @@ while True:
                 os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
             except:
                 pass
-            # connection.close()
         # if the client tells the server about deleting a folder
         # it will keep it, and will update other clients with the same id.
         # in the meantime, the server deletes the folder in its side.
@@ -469,10 +452,8 @@ while True:
                             os.rmdir(os.path.join(root, name_of_file))
                     os.rmdir(path_to_delete)
                 except Exception as e:
-                    print(e)
+                    pass
             add_changes(changes, client_id, computer_id, request, dictionary)
-            # connection.close()
-            # connection.close()
         elif command == ALERT_DELETED_FOLDER:
             separator = request_parts[4]
             computer_id = request_parts[3]
@@ -504,7 +485,6 @@ while True:
             except:
                 pass
             add_changes(changes, client_id, computer_id, request, dictionary)
-            # connection.close()
         # hello is send every time the client starts connection with the server.
         # in this way the server knows the client id, and client does not have to
         # send it in every request as parameter.
@@ -529,7 +509,6 @@ while True:
                 connection.send(msg)
                 break
             client_that_said_hello.append(computer_id)
-            # connection.close()
         # the client asks the server if there was a change.
         elif command == ASK_CHANGED:
             separator = request_parts[4]
@@ -541,8 +520,6 @@ while True:
             send_important_changes(dictionary, client_id, changes, my_last_update_time, connection, computer_id)
             # the server sends the file to the client.
             client_id_folder = client_id[:CLIENT_SHORT_ID_LENGTH]
-            # send_all_folder(client_id_folder, connection, True, my_last_update_time)
-            # connection.close()
             msg = FINISH.encode(UTF)
             sum = get_size(msg)
             connection.send(sum)
@@ -561,7 +538,6 @@ while True:
             create_folder(folder_path)
             if command == CREATE_DIR:
                 add_changes(changes, client_id, computer_id, request, dictionary)
-            # connection.close()
         elif command == SEND_FILE:
             # the server receives a file from the client.
             file_name = request_parts[1]
@@ -576,7 +552,7 @@ while True:
                 is_first_hello = request_parts[6]
             except Exception as e:
                 computer_id = client_id
-                print(e)
+                pass
             client_folder = convert_path(get_folder_by_id(dictionary, client_id, computer_id), separator)
             file_path = file_path.replace(client_folder, client_id[:CLIENT_SHORT_ID_LENGTH])
             folder = file_path.replace(file_name, EMPTY_STRING)
@@ -592,7 +568,6 @@ while True:
                     read_from_file += len(data)
                     if not data:
                         break
-                    print("Writing to file...")
                     f.write(data)
                     f.close()
                     data_left_to_read -= len(data)
@@ -604,17 +579,10 @@ while True:
                     read_from_file += len(data)
                     if not data:
                         break
-                    print("Writing...")
                     f.write(data)
-                print("read: ", read_from_file, " left: ", data_left_to_read)
-                print(read_from_file / file_size)
-                print("Finished writing to file...")
-            print("Finished writing to file...")
             if is_first_hello == "FALSE":
                 add_changes(changes, client_id, computer_id, request, dictionary)
-            # connection.close()
         elif command == FINISH:
             connection.close()
-            print("Finished and went to wait to other clients.")
             break
         time.sleep(SLEEP_INTERVAL)
