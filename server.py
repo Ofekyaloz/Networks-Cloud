@@ -194,7 +194,7 @@ def create_folder(folder_path):
 # the conn is the socket of the client.
 # get_only_modified - is when the client wants only the changes
 # if it's false, then it means clone for the first time.
-def send_all_folder(client_id_folder, conn, computer_id, get_only_modified=False,
+def send_all_folder(client_id_folder, conn, computer_id, client_id, get_only_modified=False,
                     last_update_time=None):
     dir_path = os.path.abspath(client_id_folder)
     # goes over all the folders in the folder.
@@ -222,11 +222,11 @@ def send_all_folder(client_id_folder, conn, computer_id, get_only_modified=False
             except Exception as e:
                 print(e)
             try:
-                file_location = convert_path(file_location, get_other_slash())
                 with open(file_location, READ_BYTES) as f:
                     # opens a file and sends all of it.
                     size = os.path.getsize(file_location)
-                    request = DELIMITER.join([SEND_FILE, str(file), str(size), str(file_location)])
+                    request = DELIMITER.join([SEND_FILE, str(file), str(size),
+                                              os.path.relpath(str(file_location),get_client_id_folder(client_id))])
                     request = adjust_request_to_os(request, computer_id)
                     msg = request.encode(UTF)
                     sum = get_size(msg)
@@ -516,7 +516,7 @@ while True:
             # give the client all the changes it needs.
             if is_first_hello.upper() == TRUE:
                 create_folder(client_id_folder)
-                send_all_folder(client_id_folder, connection, computer_id)
+                send_all_folder(client_id_folder, connection, computer_id, client_id)
                 msg = FINISH.encode(UTF)
                 sum = get_size(msg)
                 connection.send(sum)
