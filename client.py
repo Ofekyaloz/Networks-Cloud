@@ -47,7 +47,7 @@ EMPTY_STRING = ""
 global dir_path
 global updates_set
 updates_set = set()
-dir_path = ""
+dir_path = sys.argv[PATH_INDEX]
 
 def get_other_slash():
     if os.sep == LINUX_SEP:
@@ -118,7 +118,6 @@ if flag == INVALID:
     exit(INVALID)
 ip = sys.argv[IP_INDEX]
 port = int(sys.argv[PORT_INDEX])
-dir_path = sys.argv[PATH_INDEX]
 time_interval = int(sys.argv[TIME_INTERVAL_INDEX])
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((ip, port))
@@ -218,9 +217,9 @@ def get_changes_from_server(dir_path):
         elif command == ALERT_DELETED_FILE:
             client_dir = get_client_id_folder(client_id)
             # /home/noam/example
-            path_in_file = convert_path(request_parts[1])
+            path_in_file = os.path.join(convert_path(dir_path, request_parts[1]))
             # Acdbhd1348/home/noam
-            path_to_delete = convert_path(path_in_file.replace(client_dir, dir_path))
+            path_to_delete = convert_path(path_in_file)
             try:
             # the server delete the folder in its side.
                 os.remove(path_to_delete)
@@ -236,24 +235,19 @@ def get_changes_from_server(dir_path):
                     print(e)
 
         elif command == ALERT_MOVED_FILE:
-            client_dir = get_client_id_folder(client_id)
             # /home/noam
-            old_file_path = convert_path(request_parts[1])
+            old_file_path = os.path.join(convert_path(dir_path, request_parts[1]))
             # Acdbhd1348/home/noam
-            old_file_path = convert_path(old_file_path.replace(client_dir, dir_path))
-            new_file_path = convert_path(request_parts[2])
+            new_file_path = os.path.join(convert_path(dir_path, request_parts[2]))
             # Acdbhd1348/home/example
-            new_file_path = convert_path(new_file_path.replace(client_dir, dir_path))
             try:
-                os.rename(os.path.abspath(old_file_path), os.path.abspath(new_file_path))
+                os.rename(old_file_path, new_file_path)
                 if os.sep == WINDOWS_SEP:
-                    os.remove(os.path.abspath(old_file_path))
+                    os.remove(old_file_path)
             except Exception as e:
                 print(e)
         elif command == ALERT_DELETED_FOLDER:
-            path_in_client = convert_path(request_parts[1])
-            client_dir = get_client_id_folder(client_id)
-            path_to_delete = convert_path(path_in_client.replace(client_dir, dir_path))
+            path_to_delete = os.path.join(dir_path, convert_path(request_parts[1]))
             # the client delete the folder in its side.
             for root, folders, files in os.walk(path_to_delete, topdown=False):
                 for name_of_folder in files:
@@ -269,15 +263,13 @@ def get_changes_from_server(dir_path):
                 print("path doesnt exists")
                 pass
         if command == SEND_DIR or command == CREATE_DIR:
-            folder_path = convert_path(request_parts[1])
-            folder_path = os.path.abspath(folder_path)
+            folder_path = os.path.join(dir_path, convert_path(request_parts[1]))
             create_folder(folder_path)
 
         elif command == SEND_FILE:
             file_name = request_parts[1]
             file_size = int(request_parts[2])
-            file_path = convert_path(request_parts[3])
-            file_path = convert_path(file_path.replace(client_id[0:15], dir_path))
+            file_path = os.path.join(dir_path, convert_path(request_parts[3]))
             folder = convert_path(file_path.replace(file_name, ""))
             create_folder(folder)
             f = open(file_path, WRITE_BYTES)
