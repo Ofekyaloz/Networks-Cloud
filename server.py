@@ -377,6 +377,7 @@ while True:
             client_id = EMPTY_STRING.join(
                 random.choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for i in
                 range(ID_LENGTH))
+            print(client_id)
             connection.send(client_id.encode())
             # connection.close()
         # if the client tells about moving folder, the server keeps it
