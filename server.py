@@ -559,8 +559,9 @@ while True:
             file_name = request_parts[1]
             file_size = int(request_parts[2])
             separator = request_parts[7]
-            file_path = convert_path(request_parts[3], separator)
             client_id = request_parts[4]
+            file_path = os.path.join(get_client_id_folder(client_id),
+                                     convert_path(request_parts[3], separator))
             is_first_hello = "FALSE"
             try:
                 computer_id = request_parts[5]
